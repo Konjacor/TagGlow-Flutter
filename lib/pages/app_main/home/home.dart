@@ -5,6 +5,7 @@ import '../../../components/update_app/check_app_version.dart';
 import '../../../routes/route_name.dart';
 import '../../../config/app_env.dart' show appEnv;
 import 'provider/counterStore.p.dart';
+import '../../note/note.dart';
 
 class Home extends StatefulWidget {
   const Home({Key? key, this.params}) : super(key: key);
@@ -53,6 +54,16 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
                   context,
                   RouteName.testDemo,
                   arguments: {'data': '别名路由传参666'},
+                );
+              },
+            ),
+            _button(
+              '跳转Note页',
+              onPressed: () {
+                Navigator.pushNamed(
+                  context,
+                  RouteName.notePage,
+                  arguments: {'info': '跳转到笔记页面'},
                 );
               },
             ),

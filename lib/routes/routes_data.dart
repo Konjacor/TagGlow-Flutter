@@ -5,6 +5,7 @@ import '../pages/app_main/app_main.dart';
 import '../pages/splash/splash.dart';
 import '../pages/test_demo/test_demo.dart';
 import '../pages/Login/Login.dart';
+import '../pages/note/note.dart';
 
 final String initialRoute = RouteName.splashPage; // 初始默认显示的路由
 
@@ -17,4 +18,5 @@ final Map<String,
   RouteName.error: (context, {params}) => ErrorPage(params: params),
   RouteName.testDemo: (context, {params}) => TestDemo(params: params),
   RouteName.login: (context, {params}) => Login(params: params),
+  RouteName.notePage: (context, {params}) => NotePage(params: params),
 };

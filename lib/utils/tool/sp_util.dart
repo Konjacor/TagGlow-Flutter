@@ -42,7 +42,7 @@ class SpUtil {
         break;
       default:
     }
-    return resData as bool;
+    return resData ?? false;
   }
 
   /// 设置list类型到缓存中去

@@ -17,4 +17,8 @@ class RouteName {
 
   /// 注册页
   static String register = '/register';
+
+  /// 笔记页
+  static const String notePage = '/note';
+
 }

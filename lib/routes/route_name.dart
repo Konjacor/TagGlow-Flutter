@@ -20,5 +20,7 @@ class RouteName {
 
   /// 笔记页
   static const String notePage = '/note';
+  //tag页
+  static const String tagPage = '/tagPage';
 
 }

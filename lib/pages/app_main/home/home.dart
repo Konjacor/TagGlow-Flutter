@@ -86,6 +86,19 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
                 checkAppVersion(forceUpdate: true);
               },
             ),
+
+            // ↓ 新增：跳转到“功勋墙”页面
+            _button(
+            '查看Tag墙',
+              onPressed: () {
+              Navigator.pushNamed(
+              context,
+              RouteName.tagPage,
+              arguments: {'userId': '123'},
+    );
+  },
+),
+
           ],
         );
       }),

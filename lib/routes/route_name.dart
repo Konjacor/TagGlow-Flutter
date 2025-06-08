@@ -23,4 +23,7 @@ class RouteName {
   //tag页
   static const String tagPage = '/tagPage';
 
+  //笔记导出页
+  static const String exportPage = '/export';
+
 }

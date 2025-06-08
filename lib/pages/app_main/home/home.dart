@@ -66,6 +66,16 @@ class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
                 },
               ),
               _button(
+                '导出笔记',
+                onPressed: () {
+                  Navigator.pushNamed(
+                    context,
+                    RouteName.exportPage,
+                    arguments: {'info': '跳转到笔记导出页面'},
+                  );
+                },
+              ),
+              _button(
                 '跳转到标签墙',
                 onPressed: () {
                   Navigator.pushNamed(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../pages/map/map_page.dart';
 import 'route_name.dart';
 import '../pages/error_page/error_page.dart';
 import '../pages/app_main/app_main.dart';
@@ -6,9 +7,9 @@ import '../pages/splash/splash.dart';
 import '../pages/test_demo/test_demo.dart';
 import '../pages/Login/Login.dart';
 import '../pages/note/note.dart';
-import '../tag/tag.dart';
+import '../pages/tag/tag.dart';
 import '../pages/export/export.dart';
-import '../routes/route_name.dart';
+
 
 
 
@@ -26,6 +27,7 @@ final Map<String,
   RouteName.login: (context, {params}) => Login(params: params),
   RouteName.notePage: (context, {params}) => NotePage(params: params),
   RouteName.tagPage:(context, {params}) => const TagPage(),
+  RouteName.MapPage:(context, {params}) =>const MapPage(),
   RouteName.exportPage: (context, {params}) => ExportPage(params: params),
 
 

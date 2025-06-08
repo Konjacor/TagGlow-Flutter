@@ -1,42 +1,83 @@
 import 'package:flutter/material.dart';
-import 'components/set_theme_demo.dart';
-import 'package:jh_debug/jh_debug.dart';
-
+import 'package:provider/provider.dart';
+import '../../../../provider/theme_store.p.dart';
 import 'components/head_userbox.dart';
 
-class MyPersonal extends StatefulWidget {
-  @override
-  State<MyPersonal> createState() => _MyPersonalState();
-}
-
-class _MyPersonalState extends State<MyPersonal>
-    with AutomaticKeepAliveClientMixin {
-  @override
-  bool get wantKeepAlive => true;
+class MyPersonal extends StatelessWidget {
+  const MyPersonal({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
+    final themeStore = Provider.of<ThemeStore>(context, listen: false);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
-        title: const Text('MyPersonal页面'),
-        automaticallyImplyLeading: false,
+        title: const Text('我'),
+        centerTitle: true,
+        elevation: 0.5,
       ),
       body: Column(
         children: [
           HeadUserBox(),
-          SetThemeDemo(),
+          const SizedBox(height: 12),
+          Expanded(
+            child: ListView(
+              children: [
+                Container(
+                  color: Theme.of(context).cardColor,
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: Icon(Icons.brightness_6,
+                            color: Theme.of(context).iconTheme.color),
+                        title: Text(
+                          isDarkMode ? '切换至亮模式' : '切换至暗模式',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        onTap: () {
+                          themeStore.setTheme(
+                            isDarkMode ? ThemeData.light() : ThemeData.dark(),
+                          );
+                        },
+                      ),
+                      Divider(height: 1, color: Theme.of(context).dividerColor),
+                      ListTile(
+                        leading: Icon(Icons.edit,
+                            color: Theme.of(context).iconTheme.color),
+                        title: Text(
+                          '修改信息',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        onTap: () {
+                          // TODO: 添加修改信息导航
+                        },
+                      ),
+                      Divider(height: 1, color: Theme.of(context).dividerColor),
+                      ListTile(
+                        leading: Icon(Icons.info_outline,
+                            color: Theme.of(context).iconTheme.color),
+                        title: Text(
+                          '版本信息',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                        onTap: () {
+                          showAboutDialog(
+                            context: context,
+                            applicationName: '你的App名称',
+                            applicationVersion: 'v1.0.0',
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'myPerBtn1',
-        onPressed: () {
-          jhDebug.showDebugBtn(); // 全局显示调试按钮
-        },
-        tooltip: '显示全局浮动调试按钮',
-        child: const Icon(Icons.bug_report),
-      ), //
     );
   }
 }

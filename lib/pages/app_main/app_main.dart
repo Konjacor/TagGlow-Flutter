@@ -11,10 +11,12 @@ import '../../config/app_env.dart' show appEnv, ENV;
 import '../../config/app_config.dart';
 import '../../components/exit_app_interceptor/exit_app_interceptor.dart';
 import '../../provider/global.p.dart';
-import 'my_personal/my_personal.dart';
-import 'search/search.dart';
-import 'hot/hot.dart';
+import '../map/map_page.dart';
+
+import '../tag/tag.dart';
 import 'home/home.dart';
+import '../../pages/note/Note_list.dart';
+import 'my_personal/my_personal.dart';
 
 /// [params] 别名路由传递的参数
 /// [params.pageId] 跳转到指定tab页面（0第一页），如果不是别名路由跳转的话，又想实现跳转到指定tab页面，推荐别名路由跳转方式。
@@ -64,18 +66,23 @@ class _AppMainState extends State<AppMain>
     {
       'title': '首页',
       'icon': Icons.home,
-      'body': const Home(),
+      'body': Home(),
     },
-    {
-      'title': '热门',
-      'icon': Icons.whatshot,
-      'body': const Hot(),
-    },
-    {
-      'title': '搜索',
-      'icon': Icons.search,
-      'body': Search(),
-    },
+   {
+       'title': '笔记列表',
+       'icon': Icons.list_alt,
+       'body': NoteListPage(),  // NotePage 构造函数中如果不需要 params 可去掉 params: null
+     },
+     {
+       'title': '标签墙',
+       'icon': Icons.label,
+       'body': TagPage(),               // 标签墙页面
+     },
+     {
+       'title': '地图标记',
+       'icon': Icons.map,
+       'body': MapPage(),            // 地图标记页面
+     },
     {
       'title': '我的',
       'icon': Icons.person,

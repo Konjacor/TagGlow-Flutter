@@ -1,138 +1,123 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../routes/route_name.dart';
-import '../../../config/app_env.dart' show appEnv;
-import 'provider/counterStore.p.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class Home extends StatefulWidget {
   const Home({Key? key}) : super(key: key);
-
   @override
-  State<Home> createState() => _HomeState();
+  _HomeState createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> with AutomaticKeepAliveClientMixin {
+class _HomeState extends State<Home> {
+  final List<Map<String, String>> _covers = const [
+    {'title': '甜蜜小憩', 'subtitle': '时光静好，与笔记有你'},
+    {'title': '奇思妙想', 'subtitle': '每一刻灵感都值得被收藏'},
+    {'title': '星空漫步', 'subtitle': '记录夜晚的闪烁与安宁'},
+  ];
+
+  late final PageController _pageController;
   @override
-  bool get wantKeepAlive => true;
-  late CounterStore _counter;
+  void initState() {
+    super.initState();
+    _pageController = PageController(viewportFraction: 0.75);
+  }
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
-    _counter = Provider.of<CounterStore>(context);
-
+    final screenW = MediaQuery.of(context).size.width;
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blueAccent, Colors.purpleAccent],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '首页',
-                style: TextStyle(
-                  fontSize: 28.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+      appBar: AppBar(title: const Text('MyNotes'), centerTitle: true),
+      body: Stack(
+        children: [
+          // 背景层：宽度 = 屏宽 * 页数
+          AnimatedBuilder(
+            animation: _pageController,
+            builder: (context, child) {
+              final page = (_pageController.hasClients && _pageController.page != null)
+                  ? _pageController.page!.clamp(0.0, (_covers.length - 1).toDouble())
+                  : 0.0;
+              final dx = -page * 3;
+              return Transform.translate(
+                offset: Offset(dx, 0),
+                child: child,
+              );
+            },
+            child: Container(
+              width: screenW * _covers.length,
+              height: MediaQuery.of(context).size.height,  // ← 指定高度为全屏高
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFFFFE0F0),
+                    Color(0xFFE0F7FF),
+                    Color(0xFFF0E0FF),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
               ),
-              SizedBox(height: 20.h),
-              _button(
-                '跳转到测试页',
-                onPressed: () {
-                  Navigator.pushNamed(
-                    context,
-                    RouteName.testDemo,
-                    arguments: {'data': '别名路由传参666'},
-                  );
-                },
-              ),
-              _button(
-                '跳转到笔记页',
-                onPressed: () {
-                  Navigator.pushNamed(
-                    context,
-                    RouteName.notePage,
-                    arguments: {'info': '跳转到笔记页面'},
-                  );
-                },
-              ),
-              _button(
-                '导出笔记',
-                onPressed: () {
-                  Navigator.pushNamed(
-                    context,
-                    RouteName.exportPage,
-                    arguments: {'info': '跳转到笔记导出页面'},
-                  );
-                },
-              ),
-              _button(
-                '跳转到标签墙',
-                onPressed: () {
-                  Navigator.pushNamed(
-                    context,
-                    RouteName.tagPage,
-                    arguments: {'userId': '123'},
-                  );
-                },
-              ),
-              SizedBox(height: 20.h),
-              Text(
-                '状态管理值：${_counter.value}',
-                style: TextStyle(
-                  fontSize: 20.sp,
-                  color: Colors.white,
-                ),
-              ),
-              Row(
-                children: [
-                  _button(
-                    '加+',
-                    onPressed: () {
-                      _counter.increment();
-                    },
-                  ),
-                  _button(
-                    '减-',
-                    onPressed: () {
-                      _counter.decrement();
-                    },
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
-        ),
+
+          // 卡片层
+          Center(
+            child: SizedBox(
+              height: 300,
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _covers.length,
+                itemBuilder: (context, index) {
+                  final delta = (_pageController.page ?? index) - index;
+                  final scale = (1 - delta.abs() * 0.2).clamp(0.8, 1.0);
+                  return Transform.scale(
+                    scale: scale,
+                    child: _buildCoverCard(_covers[index]),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
+      // … 底栏 & FAB 保持不变
     );
   }
 
-  Widget _button(String text, {VoidCallback? onPressed}) {
-    return Container(
-      margin: EdgeInsets.only(top: 10.h),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white.withOpacity(0.8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.w),
-          ),
-        ),
-        onPressed: onPressed,
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: 18.sp,
-            color: Colors.blueAccent,
-          ),
+  Widget _buildCoverCard(Map<String, String> cover) {
+    final colors = [Colors.pink[100], Colors.lightBlue[100], Colors.purple[100]];
+    final idx = _covers.indexOf(cover);
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      elevation: 6,
+      color: colors[idx],
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              cover['title']!,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[800],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              cover['subtitle']!,
+              style: TextStyle(
+                fontSize: 16,
+                fontStyle: FontStyle.italic,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );

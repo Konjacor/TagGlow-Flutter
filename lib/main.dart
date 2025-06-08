@@ -4,9 +4,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:jh_debug/jh_debug.dart' show DebugMode, jhDebug, jhDebugMain;
 import 'routes/generate_route.dart' show generateRoute;
-import 'routes/routes_data.dart'; // 路由配置
-import 'providers_config.dart' show providersConfig; // providers配置文件
-import 'provider/theme_store.p.dart'; // 全局主题
+import 'routes/routes_data.dart';
+import 'providers_config.dart' show providersConfig;
+import 'provider/theme_store.p.dart';
 import 'config/common_config.dart' show commonConfig;
 import 'package:ana_page_loop/ana_page_loop.dart' show anaAllObs;
 import 'utils/app_setup/index.dart' show appSetupInit;
@@ -30,6 +30,7 @@ class MyApp extends StatelessWidget {
     jhDebug.setGlobalKey = commonConfig.getGlobalKey;
     appSetupInit();
     WidgetsFlutterBinding.ensureInitialized();
+
     return Consumer<ThemeStore>(
       builder: (context, themeStore, child) {
         return BasicLayout(
@@ -46,9 +47,10 @@ class MyApp extends StatelessWidget {
               Locale('zh', 'CH'),
               Locale('en', 'US'),
             ],
-            theme: themeStore.getTheme,
+            theme: themeStore.currentTheme, // 直接使用themeStore的currentTheme
+            darkTheme: ThemeData.dark(), // 明确指定darkTheme
             initialRoute: initialRoute,
-            onGenerateRoute: generateRoute, // 路由处理
+            onGenerateRoute: generateRoute,
             debugShowCheckedModeBanner: false,
             navigatorObservers: [...anaAllObs()],
           ),

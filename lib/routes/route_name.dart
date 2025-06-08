@@ -19,11 +19,12 @@ class RouteName {
   static String register = '/register';
 
   /// 笔记页
-  static const String notePage = '/note';
+  static  String notePage = '/note';
   //tag页
-  static const String tagPage = '/tagPage';
-
+  static  String tagPage = '/tagPage';
+ //map页
+  static  String MapPage = '/MapPage';
   //笔记导出页
-  static const String exportPage = '/export';
+  static  String exportPage = '/export';
 
 }

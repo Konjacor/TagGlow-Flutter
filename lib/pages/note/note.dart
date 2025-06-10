@@ -1,114 +1,258 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
-import '../../models/note_item.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+// 动画泡泡模型
+class Bubble {
+  Offset position;
+  Offset velocity;
+  double size;
+  Color color;
+  Bubble({required this.position, required this.velocity, required this.size, required this.color});
+}
+
+// 自定义Header图片遮罩: 单波Z弯形, 右侧更低，往下移一点
+class HeaderClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.moveTo(0, 0);
+    path.lineTo(size.width, 0);
+    path.lineTo(size.width, size.height * 0.85);
+    path.quadraticBezierTo(
+      size.width * 0.5, size.height * 0.95,
+      0, size.height * 0.85,
+    );
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
 
 class NotePage extends StatefulWidget {
-  const NotePage({Key? key, this.params}) : super(key: key);
   final Map<String, dynamic>? params;
-
+  const NotePage({Key? key, this.params}) : super(key: key);
   @override
   _NotePageState createState() => _NotePageState();
 }
 
-class _NotePageState extends State<NotePage> {
-  final TextEditingController _contentController = TextEditingController();
-  final List<String> _tags = [];
+class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  final Random _rand = Random();
+  final List<Bubble> _bubbles = [];
+  final TextEditingController _noteController = TextEditingController();
+  final TextEditingController _tagInputController = TextEditingController();
+
+  // 预设标签列表
+  final List<String> _presetTags = ['工作', '生活', '学习', '旅行', '心情'];
 
   @override
   void initState() {
     super.initState();
-    if (widget.params != null) {
-      final p = widget.params!;
-      if (p['content'] is String) {
-        _contentController.text = p['content'];
-      }
-      if (p['tags'] is List<String>) {
-        _tags.addAll(p['tags']);
-      }
+    for (int i = 0; i < 5; i++) {
+      _bubbles.add(Bubble(
+        position: Offset(_rand.nextDouble(), _rand.nextDouble()),
+        velocity: Offset(
+            _rand.nextDouble() * 0.002 - 0.001, _rand.nextDouble() * 0.002 - 0.001),
+        size: 60 + _rand.nextDouble() * 40,
+        color: Colors.primaries[_rand.nextInt(Colors.primaries.length)]
+            .withOpacity(0.3),
+      ));
     }
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 16),
+    )
+      ..addListener(_moveBubbles)
+      ..repeat();
+  }
+
+  void _moveBubbles() {
+    setState(() {
+      final w = context.size!.width;
+      final h = context.size!.height;
+      for (var b in _bubbles) {
+        double x = b.position.dx * w + b.velocity.dx * w;
+        double y = b.position.dy * h + b.velocity.dy * h;
+        if (x < 0 || x > w - b.size) {
+          b.velocity = Offset(-b.velocity.dx, b.velocity.dy);
+        }
+        if (y < 0 || y > h - b.size) {
+          b.velocity = Offset(b.velocity.dx, -b.velocity.dy);
+        }
+        b.position = Offset(x.clamp(0, w - b.size) / w,
+            y.clamp(0, h - b.size) / h);
+      }
+    });
   }
 
   @override
   void dispose() {
-    _contentController.dispose();
+    _controller.dispose();
+    _noteController.dispose();
+    _tagInputController.dispose();
     super.dispose();
   }
 
-  Future<void> _addTag() async {
-    final tag = await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('添加标签'),
-        content: TextField(
-          autofocus: true,
-          decoration: const InputDecoration(hintText: '输入标签名称'),
-          onSubmitted: (val) => Navigator.pop(context, val.trim()),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('确认')),
-        ],
-      ),
-    );
-    if (tag != null && tag.isNotEmpty) {
-      setState(() => _tags.insert(0, tag));
+  void _addTag() {
+    final tag = _tagInputController.text.trim();
+    if (tag.isNotEmpty && !_presetTags.contains(tag)) {
+      setState(() {
+        _presetTags.add(tag);
+        _tagInputController.clear();
+      });
     }
   }
 
-  void _generateContent() {
-    final buf = StringBuffer('—— AI 生成内容 ——\n');
-    for (var t in _tags) buf.writeln('- [$t] 笔记概要示例');
-    buf.writeln('以上内容基于标签生成。');
-    setState(() => _contentController.text = buf.toString());
-  }
-
   void _saveNote() {
-    final content = _contentController.text;
-    final reply = '已保存：${content.length} 字，标签: ${_tags.join(', ')}';
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(reply)));
+    // TODO: 保存逻辑
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('笔记已保存')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    final h = MediaQuery.of(context).size.height;
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('编辑笔记'),
-        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         actions: [
-          TextButton(
-            onPressed: _generateContent,
-            child: const Text('自动生成', style: TextStyle(color: Colors.white)),
-          ),
-          IconButton(icon: const Icon(Icons.save), onPressed: _saveNote),
+          IconButton(onPressed: _saveNote, icon: const Icon(Icons.save)),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (var tag in _tags)
-                  Chip(label: Text(tag), onDeleted: () => setState(() => _tags.remove(tag))),
-                ActionChip(avatar: const Icon(Icons.add), label: const Text('添加标签'), onPressed: _addTag),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: TextField(
-                controller: _contentController,
-                expands: true,
-                maxLines: null,
-                decoration: const InputDecoration(
-                  hintText: '在此编辑或查看内容',
-                  border: OutlineInputBorder(),
+      body: Stack(
+        children: [
+          // 渐变背景
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFFF6DEC8), Color(0xFFFAD5A5)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+          // 漂浮泡泡
+          for (var b in _bubbles)
+            Positioned(
+              left: b.position.dx * w,
+              top: b.position.dy * h,
+              child: Container(
+                width: b.size,
+                height: b.size,
+                decoration:
+                BoxDecoration(color: b.color, shape: BoxShape.circle),
+              ),
+            ),
+          // 主内容滚动区
+          Positioned.fill(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Header 图片与遮罩
+                  ClipPath(
+                    clipper: HeaderClipper(),
+                    child: Image.asset(
+                      'asset/images/4.jpeg',
+                      width: double.infinity,
+                      height: 250,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // 标签输入框及添加按钮
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _tagInputController,
+                            decoration: InputDecoration(
+                              hintText: '添加标签',
+                              filled: true,
+                              fillColor: Colors.white.withOpacity(0.4),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            onSubmitted: (_) => _addTag(),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _addTag,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.brown.shade700,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.add, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  // 预设标签展示
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _presetTags.map((tag) {
+                        return Container(
+                          constraints:
+                          const BoxConstraints(minWidth: 60, maxWidth: 100),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            tag,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.robotoSlab(fontSize: 14),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // 笔记输入框
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: TextField(
+                      controller: _noteController,
+                      maxLines: null,
+                      decoration: InputDecoration(
+                        hintText: '在这里输入你的笔记...',
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.9),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

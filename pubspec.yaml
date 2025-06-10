@@ -44,6 +44,12 @@ dependencies:
   http: ^0.13.5
   flutter_map: ^4.0.0
   latlong2: ^0.8.1
+  rive: ^0.12.1
+  google_fonts: ^4.0.3
+  smooth_page_indicator: ^1.0.0
+  flutter_image: ^4.1.13
+
+
 
 dev_dependencies:
   flutter_test:
@@ -63,6 +69,15 @@ flutter:
   assets:
     - asset/images/updateVersion/header/
     - asset\images\updateVersion\header\suzhou.jpg
+    - asset\animations\notetaker.gif
+    - asset/images/1.jpeg
+    - asset/images/2.jpeg
+    - asset/images/3.jpeg
+    - asset/images/4.jpeg
+    - asset/images/5.jpeg
+    - asset/animations/login.gif
+    - asset/animations/loginhead.gif
+    - asset/animations/loginpic.gif
   #  - images/a_dot_burr.jpeg
   #  - images/a_dot_ham.jpeg
   # An image asset can refer to one or more resolution-specific "variants", see

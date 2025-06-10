@@ -49,7 +49,6 @@ class _NoteListPageState extends State<NoteListPage> {
   }
 
   void _openBatchExport() {
-    // 进入批量整理页面
     final selectedNotes = _notes.where((n) => _selectedIds.contains(n.id)).toList();
     Navigator.push(
       context,
@@ -59,9 +58,7 @@ class _NoteListPageState extends State<NoteListPage> {
 
   void _toggleSelectionMode() {
     setState(() => _selectionMode = !_selectionMode);
-    if (!_selectionMode) {
-      _selectedIds.clear();
-    }
+    if (!_selectionMode) _selectedIds.clear();
   }
 
   void _onItemTap(NoteItem note) {
@@ -76,11 +73,9 @@ class _NoteListPageState extends State<NoteListPage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => NotePage(
-            params: {'id': note.id, 'content': note.content, 'tags': note.tags},
-          ),
+          builder: (_) => NotePage(params: {'id': note.id, 'content': note.content}),
         ),
-      ).then((_) => _fetchNotes());
+      );
     }
   }
 
@@ -88,62 +83,117 @@ class _NoteListPageState extends State<NoteListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_selectionMode
-            ? '已选 ${_selectedIds.length} 篇'
-            : '笔记列表'),
-        centerTitle: true,
+        title: Text(_selectionMode ? '${_selectedIds.length} 已选' : '我的笔记'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(_selectionMode ? Icons.cancel : Icons.check_box),
-            tooltip: _selectionMode ? '取消多选' : '多选',
+            icon: Icon(_selectionMode ? Icons.close : Icons.select_all),
             onPressed: _toggleSelectionMode,
           ),
-          if (_selectionMode && _selectedIds.isNotEmpty)
+          if (_selectionMode)
             IconButton(
-              icon: const Icon(Icons.auto_awesome),
-              tooltip: '批量整理',
+              icon: const Icon(Icons.border_color),
               onPressed: _openBatchExport,
-            ),
-          if (!_selectionMode)
-            IconButton(
-              icon: const Icon(Icons.add),
-              tooltip: '新建笔记',
-              onPressed: _openNewNote,
             ),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _notes.isEmpty
-          ? const Center(child: Text('暂无笔记，点击 + 新建'))
-          : ListView.separated(
-        itemCount: _notes.length,
-        separatorBuilder: (_, __) => const Divider(),
-        itemBuilder: (context, index) {
-          final note = _notes[index];
-          final selected = _selectedIds.contains(note.id);
-          final date = note.updatedAt;
-          final dateStr =
-              '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-          return ListTile(
-            leading: _selectionMode
-                ? Checkbox(
-              value: selected,
-              onChanged: (_) => _onItemTap(note),
-            )
-                : null,
-            title: Text(note.title),
-            subtitle: Text(
-              note.content.length > 30
-                  ? '${note.content.substring(0, 30)}...'
-                  : note.content,
-            ),
-            trailing: Text(dateStr,
-                style:
-                const TextStyle(fontSize: 12, color: Colors.grey)),
-            onTap: () => _onItemTap(note),
-          );
-        },
+      extendBodyBehindAppBar: true,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFF6DEC8), Color(0xFFFAD5A5)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: _notes.length + 1,
+            itemBuilder: (context, idx) {
+              if (idx == _notes.length) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: ElevatedButton.icon(
+                    onPressed: _openNewNote,
+                    icon: const Icon(Icons.add),
+                    label: const Text('新建笔记'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.brown.shade700,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                );
+              }
+              final note = _notes[idx];
+              final selected = _selectedIds.contains(note.id);
+              final dateStr =
+                  '${note.updatedAt.year}-${note.updatedAt.month.toString().padLeft(2, '0')}-${note.updatedAt.day.toString().padLeft(2, '0')}';
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 4,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () => _onItemTap(note),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? Colors.brown.shade100
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.note,
+                          size: 32,
+                          color: Colors.brown.shade400,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                note.title,
+                                style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                note.content.length > 30
+                                    ? '${note.content.substring(0, 30)}...'
+                                    : note.content,
+                                style: const TextStyle(
+                                    fontSize: 14, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Text(
+                          dateStr,
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
       ),
     );
   }

@@ -1,25 +1,42 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-class Home extends StatefulWidget {
-  const Home({Key? key}) : super(key: key);
+class DiaryHomePage extends StatefulWidget {
+  const DiaryHomePage({Key? key}) : super(key: key);
+
   @override
-  _HomeState createState() => _HomeState();
+  State<DiaryHomePage> createState() => _DiaryHomePageState();
 }
 
-class _HomeState extends State<Home> {
-  final List<Map<String, String>> _covers = const [
-    {'title': '甜蜜小憩', 'subtitle': '时光静好，与笔记有你'},
-    {'title': '奇思妙想', 'subtitle': '每一刻灵感都值得被收藏'},
-    {'title': '星空漫步', 'subtitle': '记录夜晚的闪烁与安宁'},
+class _DiaryHomePageState extends State<DiaryHomePage> {
+  final PageController _pageController = PageController(viewportFraction: 0.75);
+  int _currentIndex = 0;
+
+  // 示例数据，包含 icon、标题、封面图和详情
+  final List<Map<String, dynamic>> _cards = [
+    {
+      'title': '心情日记',
+      'icon': Icons.mood,
+      'color': Colors.pink,
+      'cover': 'asset/images/2.jpeg',
+      'details': ['❤️ 23 条', '📅 2025-06-09', '📝 写一写'],
+    },
+    {
+      'title': '学习笔记',
+      'icon': Icons.book,
+      'color': Colors.orange,
+      'cover': 'asset/images/1.jpeg',
+      'details': ['📚 12 篇', '📅 2025-06-05', '✏️ 添加笔记'],
+    },
+    {
+      'title': '旅行日志',
+      'icon': Icons.card_travel,
+      'color': Colors.teal,
+      'cover': 'asset/images/3.jpeg',
+      'details': ['✈️ 5 地点', '📅 2025-05-28', '📷 添加照片'],
+    },
   ];
 
-  late final PageController _pageController;
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController(viewportFraction: 0.75);
-  }
   @override
   void dispose() {
     _pageController.dispose();
@@ -28,96 +45,158 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    final screenW = MediaQuery.of(context).size.width;
     return Scaffold(
-      appBar: AppBar(title: const Text('MyNotes'), centerTitle: true),
-      body: Stack(
-        children: [
-          // 背景层：宽度 = 屏宽 * 页数
-          AnimatedBuilder(
-            animation: _pageController,
-            builder: (context, child) {
-              final page = (_pageController.hasClients && _pageController.page != null)
-                  ? _pageController.page!.clamp(0.0, (_covers.length - 1).toDouble())
-                  : 0.0;
-              final dx = -page * 3;
-              return Transform.translate(
-                offset: Offset(dx, 0),
-                child: child,
-              );
-            },
-            child: Container(
-              width: screenW * _covers.length,
-              height: MediaQuery.of(context).size.height,  // ← 指定高度为全屏高
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Color(0xFFFFE0F0),
-                    Color(0xFFE0F7FF),
-                    Color(0xFFF0E0FF),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFF6DEC8), Color(0xFFFAD5A5)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // 上半屏：GIF 动画
+              Expanded(
+                flex: 4,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.asset(
+                      'asset/animations/notetaker.gif',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                      gaplessPlayback: true,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
 
-          // 卡片层
-          Center(
-            child: SizedBox(
-              height: 300,
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: _covers.length,
-                itemBuilder: (context, index) {
-                  final delta = (_pageController.page ?? index) - index;
-                  final scale = (1 - delta.abs() * 0.2).clamp(0.8, 1.0);
-                  return Transform.scale(
-                    scale: scale,
-                    child: _buildCoverCard(_covers[index]),
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-      // … 底栏 & FAB 保持不变
-    );
-  }
+              // 下半屏：PageView 卡片，icon -> 标题 -> cover -> details
+              Expanded(
+                flex: 6,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: PageView.builder(
+                        controller: _pageController,
+                        itemCount: _cards.length,
+                        onPageChanged: (index) {
+                          setState(() => _currentIndex = index);
+                        },
+                        itemBuilder: (context, index) {
+                          final card = _cards[index];
+                          double scale = 1.0;
+                          try {
+                            final page = _pageController.page!;
+                            scale = (index == page.round()) ? 1.0 : 0.9;
+                          } catch (_) {}
+                          return Transform.scale(
+                            scale: scale,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16),
+                              child: Card(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                elevation: 4,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    const SizedBox(height: 16),
+                                    Icon(
+                                      card['icon'],
+                                      size: 36,
+                                      color: card['color'],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    // 标题
+                                    Center(
+                                      child: Text(
+                                        card['title'],
+                                        style: GoogleFonts.robotoSlab(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                          color: card['color'].shade800,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    // 封面图占比大
+                                    Expanded(
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: Image.asset(
+                                          card['cover'],
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                      child: AnimatedOpacity(
+                                        opacity: _currentIndex == index ? 1.0 : 0.0,
+                                        duration: const Duration(milliseconds: 300),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: card['details']
+                                              .map<Widget>((d) => Text(
+                                            d,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey,
+                                            ),
+                                          ))
+                                              .toList(),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
 
-  Widget _buildCoverCard(Map<String, String> cover) {
-    final colors = [Colors.pink[100], Colors.lightBlue[100], Colors.purple[100]];
-    final idx = _covers.indexOf(cover);
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      elevation: 6,
-      color: colors[idx],
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              cover['title']!,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[800],
+                    // 指示器
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(_cards.length, (i) {
+                        return GestureDetector(
+                          onTap: () => _pageController.animateToPage(
+                            i,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.ease,
+                          ),
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _currentIndex == i
+                                  ? Colors.brown.shade800
+                                  : Colors.grey.shade400,
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              cover['subtitle']!,
-              style: TextStyle(
-                fontSize: 16,
-                fontStyle: FontStyle.italic,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

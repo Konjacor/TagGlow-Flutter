@@ -3,7 +3,7 @@
 class NoteItem {
   final String id;
   final String title;
-  final String content;
+  late final String content;
   final DateTime updatedAt;
   List<String> tags;
 

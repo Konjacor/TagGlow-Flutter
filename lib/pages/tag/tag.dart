@@ -1,124 +1,70 @@
-// lib/tag/tag.dart
-
 import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'tag_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-/// TagPage：展示当前用户的标签墙，标签会在屏幕上漂浮上下
-class TagPage extends StatefulWidget {
-  const TagPage({Key? key}) : super(key: key);
+class TagBubble {
+  final String text;
+  Offset position;
+  Offset velocity;
+  double size;
+  Color color;
+  bool popped;
 
-  @override
-  State<TagPage> createState() => _TagPageState();
+  TagBubble({
+    required this.text,
+    required this.position,
+    required this.velocity,
+    required this.size,
+    required this.color,
+    this.popped = false,
+  });
 }
 
-class _TagPageState extends State<TagPage> {
-  late Future<List<String>> _tagsFuture;
+class TagWallPage extends StatefulWidget {
+  const TagWallPage({Key? key}) : super(key: key);
 
   @override
-  void initState() {
-    super.initState();
-    // 这里模拟 userId = '123'，实际可从参数或全局状态里获取
-    _tagsFuture = TagService.fetchUserTags('123');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tag 墙'),
-      ),
-      body: FutureBuilder<List<String>>(
-        future: _tagsFuture,
-        builder: (ctx, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            // 数据还没到，显示加载中
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('加载失败：${snapshot.error}'));
-          } else {
-            final tags = snapshot.data!;
-            if (tags.isEmpty) {
-              return const Center(child: Text('暂无标签'));
-            }
-            // 有标签：用 Stack 把它们层叠起来，随机定位+漂浮动画
-            return LayoutBuilder(
-              builder: (ctx, constraints) {
-                // 拿到父容器宽、高，方便随机定位
-                final width = constraints.maxWidth;
-                final height = constraints.maxHeight;
-                return Stack(
-                  children: [
-                    for (int i = 0; i < tags.length; i++)
-                      // 每个标签一个 FloatingTag，生成随机初始位置和动画参数
-                      FloatingTag(
-                        tag: tags[i],
-                        // 随机横纵位置（保证不会越界），最左侧留 0-0.8*宽之间随机
-                        initX: Random().nextDouble() * (width * 0.8),
-                        initY: Random().nextDouble() * (height * 0.8),
-                        // 随机动画时长：2~4 秒
-                        duration: Duration(
-                            milliseconds: 2000 + Random().nextInt(2000)),
-                        // 每个标签之间的动画相位（延迟）：0~2s
-                        delay: Duration(milliseconds: Random().nextInt(2000)),
-                      ),
-                  ],
-                );
-              },
-            );
-          }
-        },
-      ),
-    );
-  }
+  _TagWallPageState createState() => _TagWallPageState();
 }
 
-/// 漂浮标签组件：给一个字符串 tag，在屏幕上左右偏移由 initX/initY 决定，然后做上下浮动动画
-class FloatingTag extends StatefulWidget {
-  final String tag;
-  final double initX;
-  final double initY;
-  final Duration duration;
-  final Duration delay;
-
-  const FloatingTag({
-    Key? key,
-    required this.tag,
-    required this.initX,
-    required this.initY,
-    required this.duration,
-    required this.delay,
-  }) : super(key: key);
-
-  @override
-  State<FloatingTag> createState() => _FloatingTagState();
-}
-
-class _FloatingTagState extends State<FloatingTag>
-    with SingleTickerProviderStateMixin {
+class _TagWallPageState extends State<TagWallPage> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _upDownAnimation;
+  final Random _rand = Random();
+  final List<String> _tags = [
+    'Flutter', 'Dart', 'UI', 'Animation', 'AI', 'UX',
+    'OpenAI', 'Mobile', 'Cloud', 'Design', 'DevOps',
+  ];
+  final List<TagBubble> _bubbles = [];
 
   @override
   void initState() {
     super.initState();
-    // 1. 创建一个控制器，周期是 widget.duration
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    );
+    for (var tag in _tags) {
+      _bubbles.add(TagBubble(
+        text: tag,
+        position: Offset(_rand.nextDouble(), _rand.nextDouble()),
+        velocity: Offset(_rand.nextDouble() * 0.002 - 0.001, _rand.nextDouble() * 0.002 - 0.001),
+        size: 60 + _rand.nextDouble() * 40,
+        color: Colors.primaries[_rand.nextInt(Colors.primaries.length)].withOpacity(0.4 + _rand.nextDouble() * 0.3),
+      ));
+    }
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 16))
+      ..addListener(_updateBubbles)
+      ..repeat();
+  }
 
-    // 2. 定义上下浮动的动画：从 0 到 -20 像素，然后再来回
-    _upDownAnimation = Tween<double>(begin: 0, end: -20).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-
-    // 3. 延迟 widget.delay 后再开始循环往复动画
-    Future.delayed(widget.delay, () {
-      if (mounted) {
-        _controller.repeat(reverse: true);
+  void _updateBubbles() {
+    if (!mounted) return;
+    setState(() {
+      final w = context.size?.width ?? 1;
+      final h = context.size?.height ?? 1;
+      for (var b in _bubbles) {
+        if (b.popped) continue;
+        double x = b.position.dx * w + b.velocity.dx * w;
+        double y = b.position.dy * h + b.velocity.dy * h;
+        if (x < 0 || x > w - b.size) b.velocity = Offset(-b.velocity.dx, b.velocity.dy);
+        if (y < 0 || y > h - b.size) b.velocity = Offset(b.velocity.dx, -b.velocity.dy);
+        b.position = Offset((x.clamp(0, w - b.size) / w), (y.clamp(0, h - b.size) / h));
       }
     });
   }
@@ -129,32 +75,63 @@ class _FloatingTagState extends State<FloatingTag>
     super.dispose();
   }
 
+  void _popBubble(int index) {
+    setState(() {
+      _bubbles[index].popped = true;
+    });
+    Future.delayed(const Duration(milliseconds: 300), () {
+      setState(() {
+        _bubbles.removeAt(index);
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    // AnimatedBuilder 监听 controller，并在值改变时重新构建 
-    return AnimatedBuilder(
-      animation: _upDownAnimation,
-      builder: (ctx, child) {
-        return Positioned(
-          left: widget.initX,
-          top: widget.initY + _upDownAnimation.value,
-          child: child!,
-        );
-      },
-      // child 部分只构建一次：一个带背景+圆角的文本容器
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-        decoration: BoxDecoration(
-          color: Colors.blueAccent.withOpacity(0.7),
-          borderRadius: BorderRadius.circular(16.w),
-        ),
-        child: Text(
-          widget.tag,
-          style: TextStyle(
-            fontSize: 16.sp,
-            color: Colors.white,
-            fontWeight: FontWeight.w500,
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFF6DEC8), Color(0xFFFAD5A5)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
+        ),
+        child: Stack(
+          children: _bubbles.asMap().entries.map((entry) {
+            int i = entry.key;
+            TagBubble b = entry.value;
+            return AnimatedPositioned(
+              duration: const Duration(milliseconds: 16),
+              left: b.position.dx * MediaQuery.of(context).size.width,
+              top: b.position.dy * MediaQuery.of(context).size.height,
+              child: GestureDetector(
+                onTap: () => _popBubble(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: b.popped ? 0 : b.size,
+                  height: b.popped ? 0 : b.size,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: b.color,
+                    borderRadius: BorderRadius.circular(b.popped ? 0 : b.size / 2),
+                  ),
+                  child: b.popped
+                      ? null
+                      : Text(
+                    b.text,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.robotoSlab(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
         ),
       ),
     );

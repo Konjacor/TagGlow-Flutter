@@ -66,7 +66,7 @@ class _AppMainState extends State<AppMain>
     {
       'title': '首页',
       'icon': Icons.home,
-      'body': Home(),
+      'body': DiaryHomePage(),
     },
    {
        'title': '笔记列表',
@@ -76,7 +76,7 @@ class _AppMainState extends State<AppMain>
      {
        'title': '标签墙',
        'icon': Icons.label,
-       'body': TagPage(),               // 标签墙页面
+       'body': TagWallPage(),               // 标签墙页面
      },
      {
        'title': '地图标记',

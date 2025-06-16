@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import '../../note/note.dart';
 
 class DiaryHomePage extends StatefulWidget {
   const DiaryHomePage({Key? key}) : super(key: key);
@@ -36,6 +38,23 @@ class _DiaryHomePageState extends State<DiaryHomePage> {
       'details': ['✈️ 5 地点', '📅 2025-05-28', '📷 添加照片'],
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // 在卡片流最前面插入“今日笔记”卡片
+    final now = DateTime.now();
+    final dateStr = DateFormat('yyyy年MM月dd日').format(now);
+    final dayStr = DateFormat('d').format(now);
+    _cards.insert(0, {
+      'type': 'today',
+      'title': '今日笔记',
+      'date': dateStr,
+      'day': dayStr,
+      'cover': 'asset/images/kitty.png', 
+      'tip': '疲惫的一天终于结束\n打开日记写下今天的故事叭',
+    });
+  }
 
   @override
   void dispose() {
@@ -96,17 +115,112 @@ class _DiaryHomePageState extends State<DiaryHomePage> {
                             final page = _pageController.page!;
                             scale = (index == page.round()) ? 1.0 : 0.9;
                           } catch (_) {}
+                          // 判断是否为今日笔记卡片
+                          if (card['type'] == 'today') {
+                            return Transform.scale(
+                              scale: scale,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8.0, vertical: 16),
+                                child: Card(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  elevation: 4,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(20),
+                                    onTap: () {
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const NotePage()));
+                                    },
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        const SizedBox(height: 16),
+                                        Row(
+                                          children: [
+                                            const SizedBox(width: 24),
+                                            Text(
+                                              card['day'],
+                                              style: const TextStyle(
+                                                fontSize: 48,
+                                                color: Colors.teal,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              card['date'],
+                                              style: TextStyle(
+                                                  fontSize: 20,
+                                                  color: Colors.grey[700]),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Center(
+                                          child: Text(
+                                            card['tip'],
+                                            style: const TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.black87),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Expanded(
+                                          child: Center(
+                                            child: Image.asset(
+                                              card['cover'],
+                                              height: 100,
+                                              fit: BoxFit.contain,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Center(
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 32, vertical: 12),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black,
+                                              borderRadius:
+                                                  BorderRadius.circular(32),
+                                            ),
+                                            child: const Text(
+                                              '记录我的今天',
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 16),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
                           return Transform.scale(
                             scale: scale,
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8.0, vertical: 16),
                               child: Card(
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 elevation: 4,
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
                                     const SizedBox(height: 16),
                                     Icon(
@@ -140,20 +254,24 @@ class _DiaryHomePageState extends State<DiaryHomePage> {
                                     ),
                                     const SizedBox(height: 12),
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16.0),
                                       child: AnimatedOpacity(
-                                        opacity: _currentIndex == index ? 1.0 : 0.0,
-                                        duration: const Duration(milliseconds: 300),
+                                        opacity:
+                                            _currentIndex == index ? 1.0 : 0.0,
+                                        duration:
+                                            const Duration(milliseconds: 300),
                                         child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: card['details']
                                               .map<Widget>((d) => Text(
-                                            d,
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.grey,
-                                            ),
-                                          ))
+                                                    d,
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      color: Colors.grey,
+                                                    ),
+                                                  ))
                                               .toList(),
                                         ),
                                       ),
@@ -181,7 +299,8 @@ class _DiaryHomePageState extends State<DiaryHomePage> {
                           child: Container(
                             width: 8,
                             height: 8,
-                            margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 4, vertical: 12),
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: _currentIndex == i

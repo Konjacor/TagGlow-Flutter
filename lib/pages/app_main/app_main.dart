@@ -4,6 +4,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:jh_debug/jh_debug.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../models/note.dart';
 import '../../routes/route_name.dart';
 import '../../components/update_app/check_app_version.dart'
     show checkAppVersion;
@@ -11,6 +13,7 @@ import '../../config/app_env.dart' show appEnv, ENV;
 import '../../config/app_config.dart';
 import '../../components/exit_app_interceptor/exit_app_interceptor.dart';
 import '../../provider/global.p.dart';
+import '../../services/note_service.dart';
 import '../map/map_page.dart';
 
 import '../tag/tag.dart';
@@ -89,7 +92,48 @@ class _AppMainState extends State<AppMain>
       'body': MyPersonal(),
     },
   ];
+  // 添加这个方法来处理页面切换时的逻辑
+  void _onPageChanged(int index) async {
+    setState(() {
+      currentIndex = index;
+    });
 
+    // 当切换到笔记列表页面时（假设是索引1）
+    if (index == 1) {
+      await _fetchNotes();
+    }
+  }
+
+  // 添加这个方法来获取笔记数据
+  Future<void> _fetchNotes() async {
+    try {
+      // 从SharedPreferences获取当前用户ID
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+
+      if (userId == null || userId.isEmpty) {
+        throw Exception('用户未登录');
+      }
+
+      // 调用NoteService获取笔记
+      List<Note> notes = await NoteService.getNotesByUserId(userId);
+
+      // 这里需要将笔记数据传递给NoteListPage
+      // 方法1：通过Provider（推荐）
+      // 方法2：通过NoteListPage的构造函数参数
+      // 方法3：使用回调函数
+
+      // 示例：如果NoteListPage使用Provider管理状态
+      Provider.of<NoteProvider>(context, listen: false).setNotes(notes);
+
+      print('成功获取${notes.length}条笔记');
+    } catch (e) {
+      print('获取笔记失败: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('获取笔记失败: ${e.toString()}')),
+      );
+    }
+  }
   @override
   void initState() {
     super.initState();
@@ -272,5 +316,26 @@ class _AppMainState extends State<AppMain>
     } catch (e) {
       throw Exception('appBottomBar数据缺少参数、或字段类型不匹配, errorMsg:$e');
     }
+  }
+}
+
+class NoteProvider with ChangeNotifier {
+  List<Note> _notes = [];
+
+  List<Note> get notes => _notes;
+
+  void setNotes(List<Note> notes) {
+    _notes = notes;
+    notifyListeners();
+  }
+
+  void addNote(Note note) {
+    _notes.add(note);
+    notifyListeners();
+  }
+
+  void deleteNote(String noteId) {
+    _notes.removeWhere((note) => note.id == noteId);
+    notifyListeners();
   }
 }

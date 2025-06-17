@@ -37,23 +37,25 @@ class MyApp extends StatelessWidget {
           child: MaterialApp(
             navigatorKey: jhDebug.getNavigatorKey,
             showPerformanceOverlay: false,
-            locale: const Locale('zh', 'CH'),
+
+            // 1. 区域改成 zh-CN 而不是 zh-CH（CH 是瑞士拼写）
+            locale: const Locale('zh', 'CN'),
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
             supportedLocales: const [
-              Locale('zh', 'CH'),
+              Locale('zh', 'CN'),
               Locale('en', 'US'),
             ],
-            theme: themeStore.currentTheme, // 直接使用themeStore的currentTheme
-            darkTheme: ThemeData.dark(), // 明确指定darkTheme
+
             initialRoute: initialRoute,
             onGenerateRoute: generateRoute,
             debugShowCheckedModeBanner: false,
             navigatorObservers: [...anaAllObs()],
-          ),
+          )
+
         );
       },
     );

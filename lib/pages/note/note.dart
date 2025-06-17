@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import '../../services/note_service.dart';
+import '../../services/login_service.dart';
 
-// 动画泡泡模型
+
+// 泡泡模型
 class Bubble {
   Offset position;
   Offset velocity;
@@ -17,45 +20,64 @@ class Bubble {
       required this.color});
 }
 
-// 自定义Header图片遮罩: 单波Z弯形, 右侧更低，往下移一点
+// 绘制泡泡
+class BubblePainter extends CustomPainter {
+  final List<Bubble> bubbles;
+  BubblePainter(this.bubbles);
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var b in bubbles) {
+      final paint = Paint()..color = b.color;
+      final x = b.position.dx * size.width;
+      final y = b.position.dy * size.height;
+      canvas.drawCircle(Offset(x, y), b.size, paint);
+    }
+  }
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+// 自定义Header遮罩
 class HeaderClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final path = Path();
-    path.moveTo(0, 0);
-    path.lineTo(size.width, 0);
-    path.lineTo(size.width, size.height * 0.85);
+    path.lineTo(0, size.height - 50);
     path.quadraticBezierTo(
-      size.width * 0.5,
-      size.height * 0.95,
-      0,
-      size.height * 0.85,
+      size.width / 2, size.height,
+      size.width, size.height - 50,
+
     );
+    path.lineTo(size.width, 0);
     path.close();
     return path;
   }
-
   @override
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
 class NotePage extends StatefulWidget {
-  final Map<String, dynamic>? params;
-  const NotePage({Key? key, this.params}) : super(key: key);
+  final String? userId; // 可通过构造传入
+  const NotePage({Key? key, this.userId}) : super(key: key);
+
   @override
   _NotePageState createState() => _NotePageState();
 }
 
-class _NotePageState extends State<NotePage>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  final Random _rand = Random();
-  final List<Bubble> _bubbles = [];
-  final TextEditingController _noteController = TextEditingController();
-  final TextEditingController _tagInputController = TextEditingController();
 
-  // 预设标签列表
-  final List<String> _presetTags = ['工作', '生活', '学习', '旅行', '心情'];
+class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin {
+  final NoteService _noteService = NoteService();
+
+  late AnimationController _controller;
+  final List<Bubble> _bubbles = [];
+
+  final TextEditingController _tagController = TextEditingController();
+  final TextEditingController _positionController = TextEditingController();
+  final TextEditingController _weatherController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
+
+  String? _userId;
+  bool _loading = false;
 
   String? _address;
   bool _locating = false;
@@ -65,40 +87,52 @@ class _NotePageState extends State<NotePage>
   @override
   void initState() {
     super.initState();
-    for (int i = 0; i < 5; i++) {
-      _bubbles.add(Bubble(
-        position: Offset(_rand.nextDouble(), _rand.nextDouble()),
-        velocity: Offset(_rand.nextDouble() * 0.002 - 0.001,
-            _rand.nextDouble() * 0.002 - 0.001),
-        size: 60 + _rand.nextDouble() * 40,
-        color: Colors.primaries[_rand.nextInt(Colors.primaries.length)]
-            .withOpacity(0.3),
-      ));
-    }
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 16),
-    )
+
+    _controller = AnimationController(vsync: this, duration: Duration(milliseconds: 16))
       ..addListener(_moveBubbles)
       ..repeat();
-    _getUserAddress();
+    _init();
+
   }
 
+  Future<void> _init() async {
+    // 拿到当前用户
+    final user = await LoginService.getCurrentUser();
+    if (user == null) {
+      throw Exception('用户未登录');
+    }
+    _userId = user.id;
+
+    // 获取位置
+    try {
+      final loc = await _noteService.getLocation();
+      _positionController.text = '${loc['country']}${loc['province']} ${loc['city']}';
+    } catch (e) {
+      debugPrint('获取位置失败: $e');
+    }
+
+    // 获取天气
+    try {
+      final w = await _noteService.getWeather();
+      _weatherController.text = w;
+    } catch (e) {
+      debugPrint('获取天气失败: $e');
+    }
+
+    // 刷新页面
+    setState(() {});
+  }
+
+
   void _moveBubbles() {
+    final size = MediaQuery.of(context).size;
     setState(() {
-      final w = context.size!.width;
-      final h = context.size!.height;
       for (var b in _bubbles) {
-        double x = b.position.dx * w + b.velocity.dx * w;
-        double y = b.position.dy * h + b.velocity.dy * h;
-        if (x < 0 || x > w - b.size) {
-          b.velocity = Offset(-b.velocity.dx, b.velocity.dy);
-        }
-        if (y < 0 || y > h - b.size) {
-          b.velocity = Offset(b.velocity.dx, -b.velocity.dy);
-        }
-        b.position =
-            Offset(x.clamp(0, w - b.size) / w, y.clamp(0, h - b.size) / h);
+
+        final dx = (b.position.dx * size.width + b.velocity.dx).clamp(0, size.width);
+        final dy = (b.position.dy * size.height + b.velocity.dy).clamp(0, size.height);
+        b.position = Offset(dx / size.width, dy / size.height);
+
       }
     });
   }
@@ -172,73 +206,75 @@ class _NotePageState extends State<NotePage>
   @override
   void dispose() {
     _controller.dispose();
+    _tagController.dispose();
+    _positionController.dispose();
+    _weatherController.dispose();
     _noteController.dispose();
-    _tagInputController.dispose();
     super.dispose();
   }
 
   void _addTag() {
-    final tag = _tagInputController.text.trim();
-    if (tag.isNotEmpty && !_presetTags.contains(tag)) {
-      setState(() {
-        _presetTags.add(tag);
-        _tagInputController.clear();
-      });
+    final tag = _tagController.text.trim();
+    if (tag.isNotEmpty) {
+      // 若后端支持 tags，可加入列表逻辑
+      _tagController.clear();
     }
   }
 
-  void _saveNote() {
-    // TODO: 保存逻辑
-    print('保存笔记时的经度: \\$_longitude, 纬度: \\$_latitude');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('笔记已保存')),
-    );
+
+  Future<void> _saveNote() async {
+    if (_userId == null) return;
+    final content = _noteController.text.trim();
+    if (content.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('笔记内容不能为空')));
+      return;
+    }
+
+    setState(() => _loading = true);
+    final noteId = DateTime.now().millisecondsSinceEpoch.toString();
+    try {
+      final success = await NoteService.addNote(
+        id: noteId,
+        content: content,
+        position: _positionController.text.trim(),
+        userId: _userId!,
+        weather: _weatherController.text.trim(),
+        tags: [],
+      );
+      if (success) {
+        Navigator.pop(context, true);
+      } else {
+        throw Exception('接口返回失败');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('保存失败: \$e')));
+    } finally {
+      setState(() => _loading = false);
+    }
+
   }
 
   @override
   Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-    final h = MediaQuery.of(context).size.height;
+    final size = MediaQuery.of(context).size;
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          IconButton(onPressed: _saveNote, icon: const Icon(Icons.save)),
+          IconButton(onPressed: _saveNote, icon: Icon(Icons.save)),
         ],
       ),
       body: Stack(
         children: [
-          // 渐变背景
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFFF6DEC8), Color(0xFFFAD5A5)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-            ),
-          ),
-          // 漂浮泡泡
-          for (var b in _bubbles)
-            Positioned(
-              left: b.position.dx * w,
-              top: b.position.dy * h,
-              child: Container(
-                width: b.size,
-                height: b.size,
-                decoration:
-                    BoxDecoration(color: b.color, shape: BoxShape.circle),
-              ),
-            ),
-          // 主内容滚动区
+          CustomPaint(size: size, painter: BubblePainter(_bubbles)),
+
           Positioned.fill(
             child: SingleChildScrollView(
               child: Column(
                 children: [
+
                   // 地址显示
                   Padding(
                     padding:
@@ -260,6 +296,7 @@ class _NotePageState extends State<NotePage>
                     ),
                   ),
                   // Header 图片与遮罩
+
                   ClipPath(
                     clipper: HeaderClipper(),
                     child: Image.asset(
@@ -269,45 +306,32 @@ class _NotePageState extends State<NotePage>
                       fit: BoxFit.cover,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  // 标签输入框及添加按钮
+                  SizedBox(height: 16),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
                       children: [
                         Expanded(
                           child: TextField(
-                            controller: _tagInputController,
+                            controller: _tagController,
                             decoration: InputDecoration(
                               hintText: '添加标签',
                               filled: true,
                               fillColor: Colors.white.withOpacity(0.4),
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(30),
-                                borderSide: BorderSide.none,
-                              ),
+                                  borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
                             ),
                             onSubmitted: (_) => _addTag(),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: _addTag,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.brown.shade700,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.add, color: Colors.white),
-                          ),
-                        ),
+                        SizedBox(width: 8),
+                        Icon(Icons.add_circle, size: 30, color: Colors.white),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  // 预设标签展示
+                  SizedBox(height: 16),
                   Padding(
+
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Wrap(
                       spacing: 8,
@@ -321,35 +345,45 @@ class _NotePageState extends State<NotePage>
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.9),
                             borderRadius: BorderRadius.circular(16),
+
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _positionController,
+                          decoration: InputDecoration(
+                            hintText: '位置',
+                            filled: true,
+                            fillColor: Colors.white.withOpacity(0.9),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+
                           ),
-                          child: Text(
-                            tag,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.robotoSlab(fontSize: 14),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // 笔记输入框
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: TextField(
-                      controller: _noteController,
-                      maxLines: null,
-                      decoration: InputDecoration(
-                        hintText: '在这里输入你的笔记...',
-                        filled: true,
-                        fillColor: Colors.white.withOpacity(0.9),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide.none,
                         ),
-                      ),
+                        SizedBox(height: 12),
+                        TextField(
+                          controller: _weatherController,
+                          decoration: InputDecoration(
+                            hintText: '天气',
+                            filled: true,
+                            fillColor: Colors.white.withOpacity(0.9),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        TextField(
+                          controller: _noteController,
+                          maxLines: 8,
+                          decoration: InputDecoration(
+                            hintText: '在这里输入你的笔记...',
+                            filled: true,
+                            fillColor: Colors.white.withOpacity(0.9),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
                 ],
               ),
             ),

@@ -350,7 +350,7 @@ final ThemeData themePink = ThemeData(
       fontStyle: FontStyle.normal,
     ),
   ),
-  tabBarTheme: const TabBarTheme(
+  tabBarTheme: const TabBarThemeData(
     indicatorSize: TabBarIndicatorSize.tab,
     labelColor: Color(0xffffffff),
     unselectedLabelColor: Color(0xb2ffffff),
@@ -383,7 +383,7 @@ final ThemeData themePink = ThemeData(
       style: BorderStyle.none,
     )),
   ),
-  dialogTheme: const DialogTheme(
+  dialogTheme: const DialogThemeData(
       shape: RoundedRectangleBorder(
     side: BorderSide(
       color: Color(0xff000000),

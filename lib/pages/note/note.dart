@@ -1,8 +1,11 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import '../../services/note_service.dart';
 import '../../services/login_service.dart';
+
 
 // 泡泡模型
 class Bubble {
@@ -10,7 +13,11 @@ class Bubble {
   Offset velocity;
   double size;
   Color color;
-  Bubble({required this.position, required this.velocity, required this.size, required this.color});
+  Bubble(
+      {required this.position,
+      required this.velocity,
+      required this.size,
+      required this.color});
 }
 
 // 绘制泡泡
@@ -39,6 +46,7 @@ class HeaderClipper extends CustomClipper<Path> {
     path.quadraticBezierTo(
       size.width / 2, size.height,
       size.width, size.height - 50,
+
     );
     path.lineTo(size.width, 0);
     path.close();
@@ -56,8 +64,10 @@ class NotePage extends StatefulWidget {
   _NotePageState createState() => _NotePageState();
 }
 
+
 class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin {
   final NoteService _noteService = NoteService();
+
   late AnimationController _controller;
   final List<Bubble> _bubbles = [];
 
@@ -69,13 +79,20 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
   String? _userId;
   bool _loading = false;
 
+  String? _address;
+  bool _locating = false;
+  double? _latitude;
+  double? _longitude;
+
   @override
   void initState() {
     super.initState();
+
     _controller = AnimationController(vsync: this, duration: Duration(milliseconds: 16))
       ..addListener(_moveBubbles)
       ..repeat();
     _init();
+
   }
 
   Future<void> _init() async {
@@ -111,11 +128,79 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
     final size = MediaQuery.of(context).size;
     setState(() {
       for (var b in _bubbles) {
+
         final dx = (b.position.dx * size.width + b.velocity.dx).clamp(0, size.width);
         final dy = (b.position.dy * size.height + b.velocity.dy).clamp(0, size.height);
         b.position = Offset(dx / size.width, dy / size.height);
+
       }
     });
+  }
+
+  Future<void> _getUserAddress() async {
+    setState(() {
+      _locating = true;
+    });
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() {
+          _address = '定位服务未开启';
+          _locating = false;
+        });
+        return;
+      }
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() {
+            _address = '定位权限被拒绝';
+            _locating = false;
+          });
+          return;
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          _address = '定位权限被永久拒绝';
+          _locating = false;
+        });
+        return;
+      }
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+      ).timeout(const Duration(seconds: 10), onTimeout: () {
+        throw Exception('定位超时，请检查网络或定位设置');
+      });
+      _latitude = position.latitude;
+      _longitude = position.longitude;
+      print('当前经度: \\$_longitude, 纬度: \\$_latitude');
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      ).timeout(const Duration(seconds: 10), onTimeout: () {
+        throw Exception('地址解析超时');
+      });
+      if (placemarks.isNotEmpty) {
+        final p = placemarks.first;
+        setState(() {
+          _address =
+              '${p.country ?? ''}${p.administrativeArea ?? ''}${p.locality ?? ''}${p.street ?? ''}';
+          _locating = false;
+        });
+      } else {
+        setState(() {
+          _address = '无法获取地址';
+          _locating = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _address = '定位失败: $e';
+        _locating = false;
+      });
+    }
   }
 
   @override
@@ -135,6 +220,7 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
       _tagController.clear();
     }
   }
+
 
   Future<void> _saveNote() async {
     if (_userId == null) return;
@@ -165,6 +251,7 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
     } finally {
       setState(() => _loading = false);
     }
+
   }
 
   @override
@@ -182,10 +269,34 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
       body: Stack(
         children: [
           CustomPaint(size: size, painter: BubblePainter(_bubbles)),
+
           Positioned.fill(
             child: SingleChildScrollView(
               child: Column(
                 children: [
+
+                  // 地址显示
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_on,
+                            color: Colors.redAccent, size: 20),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            _locating ? '正在获取地址...' : (_address ?? '未获取到地址'),
+                            style: const TextStyle(
+                                fontSize: 14, color: Colors.black54),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Header 图片与遮罩
+
                   ClipPath(
                     clipper: HeaderClipper(),
                     child: Image.asset(
@@ -220,6 +331,21 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
                   ),
                   SizedBox(height: 16),
                   Padding(
+
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _presetTags.map((tag) {
+                        return Container(
+                          constraints:
+                              const BoxConstraints(minWidth: 60, maxWidth: 100),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(16),
+
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
                       children: [
@@ -230,6 +356,7 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
                             filled: true,
                             fillColor: Colors.white.withOpacity(0.9),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+
                           ),
                         ),
                         SizedBox(height: 12),

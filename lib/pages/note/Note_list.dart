@@ -25,6 +25,7 @@ class _NoteListPageState extends State<NoteListPage> {
     _loadNotes();
   }
 
+
   Future<void> _loadNotes() async {
     final user = await LoginService.getCurrentUser();
     if (user == null) {
@@ -50,6 +51,7 @@ class _NoteListPageState extends State<NoteListPage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('获取笔记异常：$e')),
+
       );
     }
   }
@@ -123,6 +125,7 @@ class _NoteListPageState extends State<NoteListPage> {
             ),
         ],
       ),
+
       body: ListView.builder(
         itemCount: _notes.length,
         itemBuilder: (context, index) {
@@ -156,6 +159,7 @@ class _NoteListPageState extends State<NoteListPage> {
                 : null,
           );
         },
+
       ),
     );
   }

@@ -1,11 +1,10 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import '../../services/note_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../services/login_service.dart';
-
+import '../../services/note_service.dart';
 
 // 泡泡模型
 class Bubble {
@@ -13,11 +12,7 @@ class Bubble {
   Offset velocity;
   double size;
   Color color;
-  Bubble(
-      {required this.position,
-      required this.velocity,
-      required this.size,
-      required this.color});
+  Bubble({required this.position, required this.velocity, required this.size, required this.color});
 }
 
 // 绘制泡泡
@@ -46,7 +41,6 @@ class HeaderClipper extends CustomClipper<Path> {
     path.quadraticBezierTo(
       size.width / 2, size.height,
       size.width, size.height - 50,
-
     );
     path.lineTo(size.width, 0);
     path.close();
@@ -64,10 +58,8 @@ class NotePage extends StatefulWidget {
   _NotePageState createState() => _NotePageState();
 }
 
-
 class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin {
   final NoteService _noteService = NoteService();
-
   late AnimationController _controller;
   final List<Bubble> _bubbles = [];
 
@@ -78,7 +70,8 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
 
   String? _userId;
   bool _loading = false;
-
+  String _currentAddress = '定位中…';
+  Position? _currentPosition;
   String? _address;
   bool _locating = false;
   double? _latitude;
@@ -87,54 +80,10 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-
     _controller = AnimationController(vsync: this, duration: Duration(milliseconds: 16))
       ..addListener(_moveBubbles)
       ..repeat();
-    _init();
-
-  }
-
-  Future<void> _init() async {
-    // 拿到当前用户
-    final user = await LoginService.getCurrentUser();
-    if (user == null) {
-      throw Exception('用户未登录');
-    }
-    _userId = user.id;
-
-    // 获取位置
-    try {
-      final loc = await _noteService.getLocation();
-      _positionController.text = '${loc['country']}${loc['province']} ${loc['city']}';
-    } catch (e) {
-      debugPrint('获取位置失败: $e');
-    }
-
-    // 获取天气
-    try {
-      final w = await _noteService.getWeather();
-      _weatherController.text = w;
-    } catch (e) {
-      debugPrint('获取天气失败: $e');
-    }
-
-    // 刷新页面
-    setState(() {});
-  }
-
-
-  void _moveBubbles() {
-    final size = MediaQuery.of(context).size;
-    setState(() {
-      for (var b in _bubbles) {
-
-        final dx = (b.position.dx * size.width + b.velocity.dx).clamp(0, size.width);
-        final dy = (b.position.dy * size.height + b.velocity.dy).clamp(0, size.height);
-        b.position = Offset(dx / size.width, dy / size.height);
-
-      }
-    });
+    _getUserAddress();
   }
 
   Future<void> _getUserAddress() async {
@@ -186,7 +135,7 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
         final p = placemarks.first;
         setState(() {
           _address =
-              '${p.country ?? ''}${p.administrativeArea ?? ''}${p.locality ?? ''}${p.street ?? ''}';
+          '${p.country ?? ''}${p.administrativeArea ?? ''}${p.locality ?? ''}${p.street ?? ''}';
           _locating = false;
         });
       } else {
@@ -201,6 +150,16 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
         _locating = false;
       });
     }
+  }
+  void _moveBubbles() {
+    final size = MediaQuery.of(context).size;
+    setState(() {
+      for (var b in _bubbles) {
+        final dx = (b.position.dx * size.width + b.velocity.dx).clamp(0, size.width);
+        final dy = (b.position.dy * size.height + b.velocity.dy).clamp(0, size.height);
+        b.position = Offset(dx / size.width, dy / size.height);
+      }
+    });
   }
 
   @override
@@ -220,7 +179,6 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
       _tagController.clear();
     }
   }
-
 
   Future<void> _saveNote() async {
     if (_userId == null) return;
@@ -251,7 +209,6 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
     } finally {
       setState(() => _loading = false);
     }
-
   }
 
   @override
@@ -269,34 +226,10 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
       body: Stack(
         children: [
           CustomPaint(size: size, painter: BubblePainter(_bubbles)),
-
           Positioned.fill(
             child: SingleChildScrollView(
               child: Column(
                 children: [
-
-                  // 地址显示
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.location_on,
-                            color: Colors.redAccent, size: 20),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            _locating ? '正在获取地址...' : (_address ?? '未获取到地址'),
-                            style: const TextStyle(
-                                fontSize: 14, color: Colors.black54),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Header 图片与遮罩
-
                   ClipPath(
                     clipper: HeaderClipper(),
                     child: Image.asset(
@@ -307,6 +240,22 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
                     ),
                   ),
                   SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_on, color: Colors.white),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _currentAddress,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
@@ -331,34 +280,9 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
                   ),
                   SizedBox(height: 16),
                   Padding(
-
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _presetTags.map((tag) {
-                        return Container(
-                          constraints:
-                              const BoxConstraints(minWidth: 60, maxWidth: 100),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
-                            borderRadius: BorderRadius.circular(16),
-
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
                       children: [
-                        TextField(
-                          controller: _positionController,
-                          decoration: InputDecoration(
-                            hintText: '位置',
-                            filled: true,
-                            fillColor: Colors.white.withOpacity(0.9),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-
-                          ),
-                        ),
                         SizedBox(height: 12),
                         TextField(
                           controller: _weatherController,

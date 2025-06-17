@@ -48,10 +48,9 @@ dependencies:
   google_fonts: ^4.0.3
   smooth_page_indicator: ^1.0.0
   flutter_image: ^4.1.13
-  geolocator: ^11.0.0
-  geocoding: ^2.2.0
   image_picker: ^0.8.7+3
-
+  geolocator: ^14.0.1    # 最新可解析版本
+  geocoding:  ^4.0.0
 
 
 
@@ -84,6 +83,7 @@ flutter:
     - asset/animations/loginhead.gif
     - asset/animations/loginpic.gif
     - asset/rive/sanctuary_of_goals_v2.riv
+
   #  - images/a_dot_burr.jpeg
   #  - images/a_dot_ham.jpeg
   # An image asset can refer to one or more resolution-specific "variants", see

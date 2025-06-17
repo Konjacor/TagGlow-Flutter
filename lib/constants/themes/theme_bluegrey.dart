@@ -352,7 +352,7 @@ final ThemeData themeBlueGrey = ThemeData(
       fontStyle: FontStyle.normal,
     ),
   ),
-  tabBarTheme: const TabBarThemeData(
+  tabBarTheme: const TabBarTheme(
     indicatorSize: TabBarIndicatorSize.tab,
     labelColor: Color(0xffffffff),
     unselectedLabelColor: Color(0xb2ffffff),
@@ -385,7 +385,7 @@ final ThemeData themeBlueGrey = ThemeData(
       style: BorderStyle.none,
     )),
   ),
-  dialogTheme: const DialogThemeData(
+  dialogTheme: const DialogTheme(
       shape: RoundedRectangleBorder(
     side: BorderSide(
       color: Color(0xff000000),

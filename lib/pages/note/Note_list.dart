@@ -2,9 +2,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../routes/route_name.dart';       // 使用路由常量
 import '../../services/login_service.dart';
+import '../../services/note_service.dart';
 import 'batch_edit.dart';  // 整理结果页
 import '../../models/note.dart';
 import 'package:http/http.dart' as http;
+
+import 'note_detail_page.dart';
 
 class NoteListPage extends StatefulWidget {
   const NoteListPage({Key? key}) : super(key: key);
@@ -14,7 +17,7 @@ class NoteListPage extends StatefulWidget {
 }
 
 class _NoteListPageState extends State<NoteListPage> {
-  final String _baseUrl = 'http://10.0.2.2:8001/service/note';
+  final String _baseUrl = 'http://127.0.0.1:8001/service/note';
   List<Note> _notes = [];
   Set<String> _selectedIds = {};
   bool _selectionMode = false;
@@ -25,7 +28,6 @@ class _NoteListPageState extends State<NoteListPage> {
     _loadNotes();
   }
 
-
   Future<void> _loadNotes() async {
     final user = await LoginService.getCurrentUser();
     if (user == null) {
@@ -33,12 +35,13 @@ class _NoteListPageState extends State<NoteListPage> {
       return;
     }
 
-    // GET 接口使用 path 参数
     final uri = Uri.parse('$_baseUrl/getNotesByUserId/${user.id}');
     try {
       final resp = await http.get(uri);
       if (resp.statusCode == 200) {
-        final body = jsonDecode(resp.body);
+        // 使用 UTF-8 解码，避免中文乱码
+        final bodyStr = utf8.decode(resp.bodyBytes);
+        final body = jsonDecode(bodyStr);
         final list = body['data']['items'] as List<dynamic>;
         setState(() {
           _notes = list.map((e) => Note.fromJson(e as Map<String, dynamic>)).toList();
@@ -51,7 +54,6 @@ class _NoteListPageState extends State<NoteListPage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('获取笔记异常：$e')),
-
       );
     }
   }
@@ -93,20 +95,20 @@ class _NoteListPageState extends State<NoteListPage> {
                 );
 
                 try {
-                  // POST 接口使用 query 参数
                   final response = await http.post(
                     Uri.parse('$_baseUrl/generateTravelGuide')
                         .replace(queryParameters: {'userId': userId}),
                     headers: {'Content-Type': 'application/json'},
                     body: jsonEncode(_selectedIds.toList()),
                   );
-
                   Navigator.pop(context);
 
                   if (!mounted) return;
                   if (response.statusCode == 200) {
-                    final body = jsonDecode(response.body);
-                    final guide = body['data']['travelGuide'] as String;
+                    // 同样使用 UTF-8 解码
+                    final respStr = utf8.decode(response.bodyBytes);
+                    final respBody = jsonDecode(respStr);
+                    final guide = respBody['data']['travelGuide'] as String;
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) => BatchGeneratePage(travelGuide: guide),
@@ -125,41 +127,71 @@ class _NoteListPageState extends State<NoteListPage> {
             ),
         ],
       ),
-
       body: ListView.builder(
         itemCount: _notes.length,
         itemBuilder: (context, index) {
           final note = _notes[index];
-          final selected = _selectedIds.contains(note.id);
-          return ListTile(
-            title: Text(note.content),
-            subtitle: Text(note.position ?? ''),
-            trailing: _selectionMode
-                ? Checkbox(
-              value: selected,
-              onChanged: (checked) {
+          return Dismissible(
+            key: Key(note.id),
+            direction: DismissDirection.startToEnd,
+            background: Container(
+              color: Colors.redAccent,
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.only(left: 20),
+              child: const Icon(Icons.delete, color: Colors.white),
+            ),
+            confirmDismiss: (_) => showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('确认删除？'),
+                content: const Text('是否删除此条笔记？'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text('取消'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text('删除'),
+                  ),
+                ],
+              ),
+            ),
+            onDismissed: (_) async {
+              final user = await LoginService.getCurrentUser();
+              if (user == null) {
+                Navigator.pushReplacementNamed(context, RouteName.login);
+                return;
+              }
+              final userId = user.id;
+              // 增加 userId 作为删除请求参数
+              final success = await NoteService.deleteNote(userId,note.id);
+              if (success) {
                 setState(() {
-                  if (checked == true)
-                    _selectedIds.add(note.id);
-                  else
-                    _selectedIds.remove(note.id);
+                  _notes.removeAt(index);
                 });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('删除成功')),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('删除失败，请重试')),
+                );
+              }
+            },
+            child: ListTile(
+              title: Text(note.content),
+              subtitle: Text(note.position ?? ''),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => NoteDetailPage(noteId: note.id),
+                  ),
+                );
               },
-            )
-                : null,
-            onTap: _selectionMode
-                ? () {
-              setState(() {
-                if (selected)
-                  _selectedIds.remove(note.id);
-                else
-                  _selectedIds.add(note.id);
-              });
-            }
-                : null,
+            ),
           );
         },
-
       ),
     );
   }

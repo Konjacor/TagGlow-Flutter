@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/note.dart';
 
 class NoteService {
-  static const _baseUrl = 'http://10.0.2.2:8001/service/note';
+  static const _baseUrl = 'http://127.0.0.1:8001/service/note';
 
   /// 获取用户所有笔记
   static Future<List<Note>> getNotesByUserId(String userId) async {
@@ -11,7 +11,9 @@ class NoteService {
     final resp = await http.get(uri);
 
     if (resp.statusCode == 200) {
-      final body = jsonDecode(resp.body);
+      final bodyStr = utf8.decode(resp.bodyBytes);
+      final body = jsonDecode(bodyStr);
+
       if (body['success'] == true) {
         // 根据实际返回结构调整，现在数据在 data.items 中
         final data = body['data'] as Map<String, dynamic>;
@@ -44,12 +46,13 @@ class NoteService {
     };
     final response = await http.post(
       uri,
-      headers: {'Content-Type': 'application/json'},
+      headers: {'Content-Type': 'application/json; charset=utf-8'},
       body: jsonEncode(body),
     );
 
     if (response.statusCode == 200) {
-      final resp = jsonDecode(response.body);
+      final bodyStr = utf8.decode(response.bodyBytes);
+      final resp = jsonDecode(bodyStr);
       return resp['success'] == true && resp['code'] == 20000;
     } else {
       throw Exception('Add note failed (status=${response.statusCode}): ${response.body}');
@@ -60,7 +63,8 @@ class NoteService {
     final uri = Uri.parse('$_baseUrl/getLocation');
     final response = await http.get(uri);
     if (response.statusCode == 200) {
-      final resp = jsonDecode(response.body);
+      final bodyStr = utf8.decode(response.bodyBytes);
+      final resp = jsonDecode(bodyStr);
       final loc = resp['data']['location'];
       return {
         'country': loc['country'],
@@ -77,7 +81,9 @@ class NoteService {
     final uri = Uri.parse('$_baseUrl/getWeather');
     final response = await http.get(uri);
     if (response.statusCode == 200) {
-      final resp = jsonDecode(response.body);
+      final bodyStr = utf8.decode(response.bodyBytes);
+      final resp = jsonDecode(bodyStr);
+
       return resp['data']['weather'];
     } else {
       throw Exception('Get weather failed: \${response.statusCode}');
@@ -85,13 +91,17 @@ class NoteService {
   }
 
   /// 删除笔记
-  static Future<bool> deleteNote(String noteId) async {
-    final uri = Uri.parse('$_baseUrl/delete/$noteId');
+  static Future<bool> deleteNote(String id, String noteId) async {
+    // 构造 URI，path 用 id，query 用 noteId
+    final uri = Uri.parse('$_baseUrl/delete/$noteId?userId=$id');
     final resp = await http.delete(uri);
+
     if (resp.statusCode == 200) {
-      final body = jsonDecode(resp.body);
+      // 后端返回体可能含有 non-UTF8 字符，建议用 bodyBytes + utf8.decode
+      final body = jsonDecode(utf8.decode(resp.bodyBytes));
       return body['success'] == true;
     }
     return false;
   }
+
 }

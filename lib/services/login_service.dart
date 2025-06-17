@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginService {
   // 登录接口地址，Android 模拟器访问宿主机
-  static const _loginUrl = 'http://10.0.2.2:8001/service/user/login';
+  static const _loginUrl = 'http://127.0.0.1:8001/service/user/login';
 
   /// 登录并保存用户信息到本地
   /// 返回 true 表示登录成功
@@ -22,12 +22,13 @@ class LoginService {
     try {
       final response = await http.post(
         uri,
-        headers: {'Content-Type': 'application/json'},
+          headers: {'Content-Type': 'application/json; charset=utf-8'},
         body: jsonEncode(body),
       );
 
       if (response.statusCode == 200) {
-        final result = jsonDecode(response.body);
+        final bodyStr = utf8.decode(response.bodyBytes);
+        final result = jsonDecode(bodyStr);
         if (result['success'] == true) {
           final userJson = result['data']['user'] as Map<String, dynamic>;
           final user = User.fromJson(userJson);
@@ -81,7 +82,7 @@ class LoginService {
   }
   /// 更新头像：向 /updateAvatar/{userId} 上传 file 字段
   static Future<bool> updateAvatar(String userId, File imageFile) async {
-    final uri = Uri.parse('http://10.0.2.2:8001/service/user/updateAvatar/$userId');
+    final uri = Uri.parse('http://127.0.0.1:8001/service/user/updateAvatar/$userId');
     try {
       // 使用 MultipartRequest
       final request = http.MultipartRequest('POST', uri);
@@ -100,7 +101,8 @@ class LoginService {
       print('🔄 updateAvatar 返回内容: ${resp.body}');
 
       if (resp.statusCode == 200) {
-        final result = jsonDecode(resp.body);
+        final bodyStr = utf8.decode(resp.bodyBytes);
+        final result = jsonDecode(bodyStr);
         return result['success'] == true;
       }
     } catch (e) {
@@ -112,16 +114,17 @@ class LoginService {
 
   // 更新个性签名
   static Future<bool> updateSignature(String userId, String signature) async {
-    final uri = Uri.parse('http://10.0.2.2:8001/service/user/updateSignature/$userId');
+    final uri = Uri.parse('http://127.0.0.1:8001/service/user/updateSignature/$userId');
     final body = {'signature': signature};
     try {
       final resp = await http.post(
         uri,
-        headers: {'Content-Type': 'application/json'},
+          headers: {'Content-Type': 'application/json; charset=utf-8'},
         body: jsonEncode(body),
       );
       if (resp.statusCode == 200) {
-        final result = jsonDecode(resp.body);
+        final bodyStr = utf8.decode(resp.bodyBytes);
+        final result = jsonDecode(bodyStr);
         return result['success'] == true;
       }
     } catch (e) {
@@ -133,7 +136,7 @@ class LoginService {
 
 
 class AuthService {
-  static const _baseUrl = 'http://10.0.2.2:8001/service'; // 替换成实际后端地址
+  static const _baseUrl = 'http://127.0.0.1:8001/service'; // 替换成实际后端地址
 
   /// 向后端发送注册请求，成功返回 User 对象，失败抛出异常
   static Future<User> register({
@@ -154,12 +157,13 @@ class AuthService {
 
     final resp = await http.post(
       uri,
-      headers: {'Content-Type': 'application/json'},
+      headers: {'Content-Type': 'application/json; charset=utf-8'},
       body: jsonEncode(payload),
     );
 
     if (resp.statusCode == 200) {
-      final body = jsonDecode(resp.body);
+      final bodyStr = utf8.decode(resp.bodyBytes);
+      final body = jsonDecode(bodyStr);
       if (body['success'] == true) {
         return User.fromJson(body['data']['user']);
       } else {

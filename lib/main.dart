@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:TagGlowFlutter/components/layouts/basic_layout.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -12,6 +14,7 @@ import 'package:ana_page_loop/ana_page_loop.dart' show anaAllObs;
 import 'utils/app_setup/index.dart' show appSetupInit;
 
 void main() {
+  HttpOverrides.global = Utf8HttpOverrides();
   jhDebugMain(
     appChild: MultiProvider(
       providers: providersConfig,
@@ -21,7 +24,15 @@ void main() {
     errorCallback: (details) {},
   );
 }
-
+class Utf8HttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    final client = super.createHttpClient(context);
+    // 强制请求和响应使用 UTF-8
+    client.badCertificateCallback = (cert, host, port) => true;
+    return client;
+  }
+}
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 

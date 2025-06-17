@@ -24,7 +24,11 @@
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
     <!-- 适用于 Android 13 及以上 -->
-
+    <!-- 精确定位权限 -->Add commentMore actions
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <!-- 粗略定位权限（有些库也建议加） -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    Add comment
     <!-- 相机权限 -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <application android:label="TagGlow" android:name="${applicationName}" android:usesCleartextTraffic="true" android:icon="@mipmap/ic_launcher">

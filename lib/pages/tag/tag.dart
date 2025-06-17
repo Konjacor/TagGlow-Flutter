@@ -5,98 +5,23 @@ import 'package:http/http.dart' as http;
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/login_service.dart'; // 获取 userId
 
-class TagNode {
+class TagBubble {
   final String text;
   Offset position;
-
   Offset velocity;
   final Offset targetPos;
   final double radius;
   final Color color;
   final bool hasText;
 
-
-  TagNode({
+  TagBubble({
     required this.text,
     required this.position,
-
     required this.velocity,
     required this.targetPos,
     required this.radius,
     required this.color,
   }) : hasText = text.trim().isNotEmpty;
-
-}
-
-class StarTunnelPainter extends CustomPainter {
-  final List<TagNode> nodes;
-  final double animationValue;
-  final Size size;
-  final bool flyIn;
-
-  StarTunnelPainter({
-    required this.nodes,
-    required this.animationValue,
-    required this.size,
-    required this.flyIn,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (var node in nodes) {
-      if (!node.isActive) continue;
-      // 透视投影
-      double perspective = 1.0 / (0.7 + node.z);
-      double x =
-          (node.position.dx - 0.5) * size.width * perspective + size.width / 2;
-      double y = (node.position.dy - 0.5) * size.height * perspective +
-          size.height / 2;
-      double r = node.size * node.scale * perspective;
-      // 呼吸发光
-      final glowPaint = Paint()
-        ..color = node.color
-            .withOpacity(0.18 * node.glowIntensity + (node.isHovered ? 0.3 : 0))
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12.0);
-      canvas.drawCircle(Offset(x, y), r * 1.7, glowPaint);
-      // 节点本体
-      final nodePaint = Paint()
-        ..color =
-            node.color.withOpacity(node.opacity + (node.isHovered ? 0.2 : 0))
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(Offset(x, y),
-          r * (node.showLabel || node.isHovered ? 1.3 : 1.0), nodePaint);
-      // 显示标签内容
-      if (node.showLabel || node.isHovered) {
-        final textPainter = TextPainter(
-          text: TextSpan(
-            text: node.text,
-            style: GoogleFonts.robotoSlab(
-              fontSize: 16 * node.scale * perspective,
-              color: Colors.white.withOpacity(node.opacity),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          textDirection: TextDirection.ltr,
-        )..layout();
-        double textX = x - textPainter.width / 2;
-        double textY = y - r * 1.3 - textPainter.height;
-        // 边界修正
-        if (textX < 0) textX = 0;
-        if (textX + textPainter.width > size.width)
-          textX = size.width - textPainter.width;
-        if (textY < 0) textY = y + r * 1.3;
-        if (textY + textPainter.height > size.height)
-          textY = size.height - textPainter.height;
-        textPainter.paint(
-          canvas,
-          Offset(textX, textY),
-        );
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(StarTunnelPainter oldDelegate) => true;
 }
 
 class TagWallPage extends StatefulWidget {
@@ -104,7 +29,6 @@ class TagWallPage extends StatefulWidget {
   @override
   _TagWallPageState createState() => _TagWallPageState();
 }
-
 
 class _TagWallPageState extends State<TagWallPage> with TickerProviderStateMixin {
   late AnimationController _flyController;
@@ -114,8 +38,7 @@ class _TagWallPageState extends State<TagWallPage> with TickerProviderStateMixin
 
   final List<TagBubble> _bubbles = [];
   final Random _rand = Random();
-  final String _baseUrl = 'http://10.0.2.2:8001/service/tag';
-
+  final String _baseUrl = 'http://127.0.0.1:8001/service/tag';
 
   @override
   void initState() {
@@ -139,7 +62,8 @@ class _TagWallPageState extends State<TagWallPage> with TickerProviderStateMixin
     final uri = Uri.parse('$_baseUrl/user/$userId');
     final response = await http.get(uri);
     if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
+      final bodyStr = utf8.decode(response.bodyBytes);
+      final List data = jsonDecode(bodyStr);
       // 直接返回列表
       return List<Map<String, dynamic>>.from(data);
     } else {
@@ -190,7 +114,6 @@ class _TagWallPageState extends State<TagWallPage> with TickerProviderStateMixin
       if (status == AnimationStatus.completed) {
         // 确保精准到位
         for (var b in _bubbles) b.position = b.targetPos;
-
       }
     });
 
@@ -267,11 +190,6 @@ class _TagWallPageState extends State<TagWallPage> with TickerProviderStateMixin
     setState(() {});
   }
 
-  bool _isInitialLabel(int index) {
-    // 初始大节点
-    return _nodes[index].showLabel && _nodes[index].size > 16;
-  }
-
   @override
   void dispose() {
     _flyController.dispose();
@@ -284,7 +202,6 @@ class _TagWallPageState extends State<TagWallPage> with TickerProviderStateMixin
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     return Scaffold(
-
       backgroundColor: Colors.pink.shade50,
       body: Stack(
         children: _bubbles.asMap().entries.map((entry) {
@@ -337,16 +254,12 @@ class _TagWallPageState extends State<TagWallPage> with TickerProviderStateMixin
                       ),
                     )
                         : null,
-
                   ),
-                  size: Size.infinite,
                 ),
-
               );
             },
           );
         }).toList(),
-
       ),
     );
   }

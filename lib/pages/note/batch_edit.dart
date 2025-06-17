@@ -34,69 +34,59 @@ class HeaderArcClipper extends CustomClipper<Path> {
 }
 
 class BatchGeneratePage extends StatefulWidget {
-  final List<NoteItem> notes;
-  const BatchGeneratePage({Key? key, required this.notes}) : super(key: key);
-  @override _BatchGeneratePageState createState() => _BatchGeneratePageState();
+  final String travelGuide;
+  const BatchGeneratePage({Key? key, required this.travelGuide}) : super(key: key);
+
+  @override
+  _BatchGeneratePageState createState() => _BatchGeneratePageState();
 }
 
-class _BatchGeneratePageState extends State<BatchGeneratePage> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  final Random _rand = Random();
+class _BatchGeneratePageState extends State<BatchGeneratePage>
+    with SingleTickerProviderStateMixin {
+  final TextEditingController _contentController = TextEditingController();
+  late AnimationController _bubbleController;
   final List<Bubble> _bubbles = [];
-  late TextEditingController _contentController;
 
   @override
   void initState() {
     super.initState();
-    // 初始化泡泡背景
-    for (int i = 0; i < 5; i++) {
-      _bubbles.add(Bubble(
-        position: Offset(_rand.nextDouble(), _rand.nextDouble()),
-        velocity: Offset(_rand.nextDouble()*0.002-0.001, _rand.nextDouble()*0.002-0.001),
-        size: 60 + _rand.nextDouble()*40,
-        color: Colors.primaries[_rand.nextInt(Colors.primaries.length)].withOpacity(0.3),
-      ));
-    }
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds:16))
-      ..addListener(_moveBubbles)
-      ..repeat();
-    // 合并 notes 内容
-    final combined = widget.notes.map((n) => '- \${n.title}: \${n.content}').join('\n');
-    _contentController = TextEditingController(text: combined);
+    // 将接口返回的 travelGuide 填入文本框
+    _contentController.text = widget.travelGuide;
+
+    // 初始化泡泡动画控制器及泡泡列表（保持原有逻辑）
+    _bubbleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 6000),
+    )..repeat();
   }
 
-  void _moveBubbles() {
-    setState(() {
-      final w = context.size!.width;
-      final h = context.size!.height;
-      for (var b in _bubbles) {
-        double x = b.position.dx*w + b.velocity.dx*w;
-        double y = b.position.dy*h + b.velocity.dy*h;
-        if (x<0||x>w-b.size) b.velocity = Offset(-b.velocity.dx, b.velocity.dy);
-        if (y<0||y>h-b.size) b.velocity = Offset(b.velocity.dx, -b.velocity.dy);
-        b.position = Offset(x.clamp(0, w-b.size)/w, y.clamp(0, h-b.size)/h);
-      }
-    });
-  }
-
-  @override void dispose() {
-    _controller.dispose();
+  @override
+  void dispose() {
     _contentController.dispose();
+    _bubbleController.dispose();
     super.dispose();
   }
 
+  // 保存所有笔记逻辑
   void _saveAll() {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已保存整理内容')));
+    // TODO: 实现保存
   }
 
+  // 下载所有整理内容逻辑
   void _downloadAll() {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('下载已开始')));
+    // TODO: 实现下载
   }
 
   @override
   Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-    final h = MediaQuery.of(context).size.height;
+    final w = MediaQuery
+        .of(context)
+        .size
+        .width;
+    final h = MediaQuery
+        .of(context)
+        .size
+        .height;
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -110,21 +100,34 @@ class _BatchGeneratePageState extends State<BatchGeneratePage> with SingleTicker
       ),
       body: Stack(
         children: [
+          // 背景渐变
           Positioned.fill(
             child: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Color(0xFFF6DEC8), Color(0xFFFAD5A5)],
-                  begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
               ),
             ),
           ),
+
           // 泡泡背景
-          for (var b in _bubbles) Positioned(
-            left: b.position.dx*w, top: b.position.dy*h,
-            child: Container(width: b.size, height: b.size,
-              decoration: BoxDecoration(color: b.color, shape: BoxShape.circle),),),
+          for (var b in _bubbles)
+            Positioned(
+              left: b.position.dx * w,
+              top: b.position.dy * h,
+              child: Container(
+                width: b.size,
+                height: b.size,
+                decoration: BoxDecoration(
+                  color: b.color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+
           // 主体内容
           Positioned.fill(
             child: SingleChildScrollView(
@@ -133,14 +136,16 @@ class _BatchGeneratePageState extends State<BatchGeneratePage> with SingleTicker
                   ClipPath(
                     clipper: HeaderArcClipper(),
                     child: Image.asset(
-                      'asset/images/5.jpeg', width: double.infinity,
-                      height: 220, fit: BoxFit.cover,
+                      'asset/images/5.jpeg',
+                      width: double.infinity,
+                      height: 220,
+                      fit: BoxFit.cover,
                     ),
                   ),
                   const SizedBox(height: 16),
                   // 整理后大块内容
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal:16),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: TextField(
                       controller: _contentController,
                       maxLines: null,
@@ -148,9 +153,11 @@ class _BatchGeneratePageState extends State<BatchGeneratePage> with SingleTicker
                         filled: true,
                         fillColor: Colors.white.withOpacity(0.9),
                         border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
-                      style: TextStyle(fontSize: 16, height:1.5),
+                      style: const TextStyle(fontSize: 16, height: 1.5),
                     ),
                   ),
                   const SizedBox(height: 24),

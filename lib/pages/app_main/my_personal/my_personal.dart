@@ -1,21 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart'; // 添加Google字体
-import '../../../../provider/theme_store.p.dart';
-import 'components/head_userbox.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../services/login_service.dart';
+import '../../../models/user_model.dart';
+import 'edit_avatar_page.dart';
+import 'edit_signature_page.dart';
+import '../../../provider/theme_store.p.dart';
 
-class MyPersonal extends StatelessWidget {
+class MyPersonal extends StatefulWidget {
   const MyPersonal({Key? key}) : super(key: key);
+
+  @override
+  _MyPersonalState createState() => _MyPersonalState();
+}
+
+class _MyPersonalState extends State<MyPersonal> {
+  late Future<User?> _userFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  void _loadUser() {
+    _userFuture = LoginService.getCurrentUser();
+  }
 
   @override
   Widget build(BuildContext context) {
     final themeStore = Provider.of<ThemeStore>(context, listen: false);
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
-    // 粉色主题颜色
     final pinkPrimary = Colors.pink.shade300;
     final pinkBackground = Colors.pink.shade50;
-    final pinkCardColor = Colors.white.withOpacity(0.9);
 
     return Scaffold(
       backgroundColor: pinkBackground,
@@ -31,178 +48,168 @@ class MyPersonal extends StatelessWidget {
         centerTitle: true,
         elevation: 0,
         backgroundColor: pinkPrimary,
-        iconTheme: IconThemeData(color: Colors.white),
       ),
-      body: Column(
-        children: [
-          // 美化用户头像区域
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [pinkPrimary, Colors.pink.shade200],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+      body: FutureBuilder<User?>(
+        future: _userFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final user = snapshot.data;
+          if (user == null) {
+            return const Center(child: Text('无法获取用户信息'));
+          }
+          return Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 32),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [pinkPrimary, Colors.pink.shade200],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.pink.shade100,
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundImage: user.avatar.isNotEmpty
+                          ? NetworkImage(user.avatar)
+                          : const AssetImage('assets/images/default_avatar.png') as ImageProvider,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      user.username,
+                      style: GoogleFonts.robotoSlab(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      user.signature,
+                      style: GoogleFonts.robotoSlab(
+                        fontSize: 14,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.pink.shade100,
-                  blurRadius: 10,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: HeadUserBox(),
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: ListView(
-              children: [
-                // 美化卡片容器
-                Container(
-                  margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: pinkCardColor,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.pink.shade100,
-                        blurRadius: 10,
-                        spreadRadius: 2,
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: [
+                    _buildListTile(
+                      icon: Icons.brightness_6,
+                      title: isDarkMode ? '切换至亮模式' : '切换至暗模式',
+                      onTap: () => themeStore.setTheme(
+                        isDarkMode ? ThemeData.light() : ThemeData.dark(),
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      // 美化列表项
-                      _buildPinkListTile(
-                        context,
-                        icon: Icons.brightness_6,
-                        title: isDarkMode ? '切换至亮模式' : '切换至暗模式',
-                        onTap: () {
-                          themeStore.setTheme(
-                            isDarkMode ? ThemeData.light() : ThemeData.dark(),
-                          );
-                        },
-                      ),
-                      Divider(
-                        height: 1,
-                        color: Colors.pink.shade100,
-                        indent: 16,
-                        endIndent: 16,
-                      ),
-                      _buildPinkListTile(
-                        context,
-                        icon: Icons.edit,
-                        title: '修改信息',
-                        onTap: () {
-                          // TODO: 添加修改信息导航
-                        },
-                      ),
-                      Divider(
-                        height: 1,
-                        color: Colors.pink.shade100,
-                        indent: 16,
-                        endIndent: 16,
-                      ),
-                      _buildPinkListTile(
-                        context,
-                        icon: Icons.info_outline,
-                        title: '版本信息',
-                        onTap: () {
-                          showAboutDialog(
-                            context: context,
-                            applicationName: '你的App名称',
-                            applicationVersion: 'v1.0.0',
-                            applicationIcon: Icon(
-                              Icons.favorite,
-                              color: pinkPrimary,
+                    ),
+                    const Divider(color: Colors.pinkAccent),
+                    _buildListTile(
+                      icon: Icons.image,
+                      title: '修改头像',
+                      onTap: () async {
+                        final updated = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EditAvatarPage(
+                              userId: user.id,
+                              currentAvatar: user.avatar,
                             ),
-                            children: [
-                              Text('感谢使用我们的应用！',
-                                style: TextStyle(color: Colors.pink.shade800),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+                          ),
+                        );
+                        if (updated == true && mounted) {
+                          setState(_loadUser);
+                        }
+                      },
+                    ),
+                    const Divider(color: Colors.pinkAccent),
+                    _buildListTile(
+                      icon: Icons.edit,
+                      title: '修改签名',
+                      onTap: () async {
+                        final updated = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => EditSignaturePage(
+                              userId: user.id,
+                              currentSignature: user.signature,
+                            ),
+                          ),
+                        );
+                        if (updated == true && mounted) {
+                          setState(_loadUser);
+                        }
+                      },
+                    ),
+                    const Divider(color: Colors.pinkAccent),
+                    _buildListTile(
+                      icon: Icons.info_outline,
+                      title: '版本信息',
+                      onTap: () {
+                        // TODO: 版本信息
+                      },
+                    ),
+                    const Divider(color: Colors.pinkAccent),
+                    _buildListTile(
+                      icon: Icons.logout,
+                      title: '退出登录',
+                      onTap: () async {
+                        await LoginService.logout();
+                        if (!mounted) return;
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          '/login',
+                              (route) => false,
+                        );
+                      },
+                    ),
+                  ],
                 ),
-                // 添加额外的设置项
-                Container(
-                  margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: pinkCardColor,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.pink.shade100,
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      _buildPinkListTile(
-                        context,
-                        icon: Icons.settings,
-                        title: '设置',
-                        onTap: () {},
-                      ),
-                      Divider(
-                        height: 1,
-                        color: Colors.pink.shade100,
-                        indent: 16,
-                        endIndent: 16,
-                      ),
-                      _buildPinkListTile(
-                        context,
-                        icon: Icons.exit_to_app,
-                        title: '退出登录',
-                        onTap: () {},
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  // 自定义粉色风格列表项
-  Widget _buildPinkListTile(
-      BuildContext context, {
-        required IconData icon,
-        required String title,
-        required VoidCallback onTap,
-      }) {
+  Widget _buildListTile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
     return ListTile(
-      leading: Container(
-        padding: EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.pink.shade100.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(icon, color: Colors.pink.shade800),
-      ),
+      leading: Icon(icon, color: Colors.pink),
       title: Text(
         title,
-        style: GoogleFonts.roboto(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: Colors.pink.shade900,
-        ),
+        style: GoogleFonts.robotoSlab(color: Colors.black87),
       ),
-      trailing: Icon(
-        Icons.chevron_right,
-        color: Colors.pink.shade300,
+      trailing: const Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: Colors.grey,
+      ),
+      tileColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
       ),
       onTap: onTap,
-      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
     );
   }
 }

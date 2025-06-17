@@ -25,6 +25,11 @@ class RouteName {
  //map页
   static  String MapPage = '/MapPage';
   //笔记导出页
-  static  String exportPage = '/export';
+  static  String BatchGeneratePage = '/BatchGeneratePage';
+  //注册
+  static  String registerPage = '/register';
+
+  static  String DiaryHomePage = '/home';
+
 
 }

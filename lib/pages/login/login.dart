@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../services/login_service.dart';
+
 // 添加这个包来显示GIF
 import 'package:flutter_image/flutter_image.dart';
 
@@ -138,7 +140,9 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
   late AnimationController _secondaryShapeCtrl;
   late Animation<Offset> _mainShapeAnim;
   late Animation<Offset> _secondaryShapeAnim;
-
+  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  bool isLoading = false; // To handle loading state
   @override
   void initState() {
     super.initState();
@@ -351,6 +355,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
 
                             // Cute email field with heart icon
                             TextField(
+                              controller: usernameController,
                               decoration: InputDecoration(
                                 hintText: 'Email',
                                 filled: true,
@@ -368,6 +373,7 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
 
                             // Cute password field with lock icon
                             TextField(
+                              controller: passwordController,
                               decoration: InputDecoration(
                                 hintText: 'Password',
                                 filled: true,
@@ -388,7 +394,27 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: () {},
+                                onPressed: () async {
+                                  final username = usernameController.text.trim();
+                                  final password = passwordController.text;
+
+                                  if (username.isEmpty || password.isEmpty) {
+                                    print("用户名或密码为空");
+                                    // 可弹出提示，如使用 Fluttertoast
+                                    return;
+                                  }
+
+                                  final success = await LoginService.login(username, password);
+
+                                  if (success) {
+                                    print("登录成功，跳转页面...");
+                                    // TODO: 跳转主页，例如：
+                                    Navigator.pushReplacementNamed(context, '/appMain');
+                                  } else {
+                                    print("登录失败，请检查用户名密码");
+                                    // TODO: 弹出错误提示
+                                  }
+                                },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.pink.shade300,
                                   shape: RoundedRectangleBorder(
@@ -415,66 +441,40 @@ class _LoginState extends State<Login> with TickerProviderStateMixin {
                                 ),
                               ),
                             ),
-
-                            // Cute "or" divider
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              child: Row(
-                                children: [
-                                  Expanded(child: Divider(color: Colors.pink.shade100)),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                                    child: Text(
-                                      'or',
-                                      style: TextStyle(
-                                        color: Colors.pink.shade300,
+                            const SizedBox(height: 12),
+                            // Cute register button
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  Navigator.pushNamed(context, '/register');
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: Colors.pink.shade300),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.person_add, color: Colors.pink.shade300),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Register',
+                                      style: GoogleFonts.robotoSlab(
+                                        fontSize: 18,
                                         fontWeight: FontWeight.bold,
+                                        color: Colors.pink.shade300,
                                       ),
                                     ),
-                                  ),
-                                  Expanded(child: Divider(color: Colors.pink.shade100)),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
 
-                            // Cute social buttons
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                IconButton(
-                                  onPressed: () {},
-                                  icon: Icon(Icons.g_translate, color: Colors.pink),
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: Colors.pink.shade50,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                IconButton(
-                                  onPressed: () {},
-                                  icon: Icon(Icons.facebook, color: Colors.pink),
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: Colors.pink.shade50,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                IconButton(
-                                  onPressed: () {},
-                                  icon: Icon(Icons.apple, color: Colors.pink),
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: Colors.pink.shade50,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+
                           ],
                         ),
                       ),

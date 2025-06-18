@@ -1,10 +1,9 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/login_service.dart';
 import '../../services/note_service.dart';
+
 
 // 泡泡模型
 class Bubble {
@@ -70,12 +69,6 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
 
   String? _userId;
   bool _loading = false;
-  String _currentAddress = '定位中…';
-  Position? _currentPosition;
-  String? _address;
-  bool _locating = false;
-  double? _latitude;
-  double? _longitude;
 
   @override
   void initState() {
@@ -83,74 +76,38 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
     _controller = AnimationController(vsync: this, duration: Duration(milliseconds: 16))
       ..addListener(_moveBubbles)
       ..repeat();
-    _getUserAddress();
+    _init();
   }
 
-  Future<void> _getUserAddress() async {
-    setState(() {
-      _locating = true;
-    });
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        setState(() {
-          _address = '定位服务未开启';
-          _locating = false;
-        });
-        return;
-      }
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          setState(() {
-            _address = '定位权限被拒绝';
-            _locating = false;
-          });
-          return;
-        }
-      }
-      if (permission == LocationPermission.deniedForever) {
-        setState(() {
-          _address = '定位权限被永久拒绝';
-          _locating = false;
-        });
-        return;
-      }
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.medium,
-      ).timeout(const Duration(seconds: 10), onTimeout: () {
-        throw Exception('定位超时，请检查网络或定位设置');
-      });
-      _latitude = position.latitude;
-      _longitude = position.longitude;
-      print('当前经度: \\$_longitude, 纬度: \\$_latitude');
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      ).timeout(const Duration(seconds: 10), onTimeout: () {
-        throw Exception('地址解析超时');
-      });
-      if (placemarks.isNotEmpty) {
-        final p = placemarks.first;
-        setState(() {
-          _address =
-          '${p.country ?? ''}${p.administrativeArea ?? ''}${p.locality ?? ''}${p.street ?? ''}';
-          _locating = false;
-        });
-      } else {
-        setState(() {
-          _address = '无法获取地址';
-          _locating = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _address = '定位失败: $e';
-        _locating = false;
-      });
+  Future<void> _init() async {
+    // 拿到当前用户
+    final user = await LoginService.getCurrentUser();
+    if (user == null) {
+      throw Exception('用户未登录');
     }
+    _userId = user.id;
+
+    // 获取位置
+    try {
+      final loc = await _noteService.getLocation();
+      _positionController.text = '${loc['country']}${loc['province']} ${loc['city']}';
+    } catch (e) {
+      debugPrint('获取位置失败: $e');
+    }
+
+    // 获取天气
+    try {
+      final w = await _noteService.getWeather();
+      _weatherController.text = w;
+    } catch (e) {
+      debugPrint('获取天气失败: $e');
+    }
+
+    // 刷新页面
+    setState(() {});
   }
+
+
   void _moveBubbles() {
     final size = MediaQuery.of(context).size;
     setState(() {
@@ -241,22 +198,6 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
                   ),
                   SizedBox(height: 16),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.location_on, color: Colors.white),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _currentAddress,
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
                       children: [
@@ -283,6 +224,15 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
                       children: [
+                        TextField(
+                          controller: _positionController,
+                          decoration: InputDecoration(
+                            hintText: '位置',
+                            filled: true,
+                            fillColor: Colors.white.withOpacity(0.9),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                          ),
+                        ),
                         SizedBox(height: 12),
                         TextField(
                           controller: _weatherController,

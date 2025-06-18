@@ -1,22 +1,16 @@
-buildscript {
-    ext.kotlin_version = '1.9.22'  // 明确指定 Kotlin 版本
-    repositories {
-        // 国内镜像优先
-        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
-        maven { url 'https://maven.aliyun.com/repository/google' }
-        maven { url 'https://maven.aliyun.com/repository/central' }
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.1.4'  // 使用稳定版本
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
-}
+// buildscript {
+//     repositories {
+//         google()
+//         mavenCentral()
+//     }
+//     dependencies {
+//         classpath 'com.android.tools.build:gradle:8.3.0'
+//     }
+// }
 
 allprojects {
     repositories {
-        // 国内镜像优先
+        // 国内镜像
         maven { url 'https://maven.aliyun.com/repository/central' }
         maven { url 'https://maven.aliyun.com/repository/google' }
         maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
@@ -25,36 +19,23 @@ allprojects {
     }
 }
 
-rootProject.buildDir = '../build'
+rootProject.buildDir = "../build"
 
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
-
+    // Commented previous block and inserted this block, as indicated by
+    // https://github.com/4Q-s-r-o/ota_update/issues/120
     afterEvaluate { project ->
         if (project.plugins.hasPlugin("com.android.application") ||
                 project.plugins.hasPlugin("com.android.library")) {
-
-            android {
+            project.android {
                 compileSdkVersion 34
                 buildToolsVersion "34.0.0"
-
-                // 统一配置 NDK 版本
-                ndkVersion "25.1.8937393"
-
-                // 解决 Java 8 兼容性问题
-                compileOptions {
-                    sourceCompatibility JavaVersion.VERSION_1_8
-                    targetCompatibility JavaVersion.VERSION_1_8
-                }
-
-                kotlinOptions {
-                    jvmTarget = '1.8'
-                }
             }
         }
     }
 }
 
-tasks.register('clean', Delete) {
+tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }

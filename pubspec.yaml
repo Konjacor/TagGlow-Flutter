@@ -49,8 +49,7 @@ dependencies:
   smooth_page_indicator: ^1.0.0
   flutter_image: ^4.1.13
   image_picker: ^0.8.7+3
-  geolocator: ^14.0.1    # 最新可解析版本
-  geocoding:  ^4.0.0
+
 
 
 

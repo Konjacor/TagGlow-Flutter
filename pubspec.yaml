@@ -49,6 +49,8 @@ dependencies:
   smooth_page_indicator: ^1.0.0
   flutter_image: ^4.1.13
   image_picker: ^0.8.7+3
+  geolocator: ^11.0.0
+  geocoding: ^3.0.0
 
 
 

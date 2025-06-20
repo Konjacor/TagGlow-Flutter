@@ -12,8 +12,12 @@ import 'provider/theme_store.p.dart';
 import 'config/common_config.dart' show commonConfig;
 import 'package:ana_page_loop/ana_page_loop.dart' show anaAllObs;
 import 'utils/app_setup/index.dart' show appSetupInit;
+import 'config/app_env.dart';
+import 'config/app_config.dart';
 
 void main() {
+  appEnv.currentEnv = ENV.DEV; // 强制开发环境，避免 301 问题
+  AppConfig.host = appEnv.baseUrl; // 强制同步 host，彻底解决 301 问题
   HttpOverrides.global = Utf8HttpOverrides();
   jhDebugMain(
     appChild: MultiProvider(
@@ -24,6 +28,7 @@ void main() {
     errorCallback: (details) {},
   );
 }
+
 class Utf8HttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
@@ -33,6 +38,7 @@ class Utf8HttpOverrides extends HttpOverrides {
     return client;
   }
 }
+
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
@@ -45,29 +51,27 @@ class MyApp extends StatelessWidget {
     return Consumer<ThemeStore>(
       builder: (context, themeStore, child) {
         return BasicLayout(
-          child: MaterialApp(
-            navigatorKey: jhDebug.getNavigatorKey,
-            showPerformanceOverlay: false,
+            child: MaterialApp(
+          navigatorKey: jhDebug.getNavigatorKey,
+          showPerformanceOverlay: false,
 
-            // 1. 区域改成 zh-CN 而不是 zh-CH（CH 是瑞士拼写）
-            locale: const Locale('zh', 'CN'),
-            localizationsDelegates: const [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            supportedLocales: const [
-              Locale('zh', 'CN'),
-              Locale('en', 'US'),
-            ],
+          // 1. 区域改成 zh-CN 而不是 zh-CH（CH 是瑞士拼写）
+          locale: const Locale('zh', 'CN'),
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('zh', 'CN'),
+            Locale('en', 'US'),
+          ],
 
-            initialRoute: initialRoute,
-            onGenerateRoute: generateRoute,
-            debugShowCheckedModeBanner: false,
-            navigatorObservers: [...anaAllObs()],
-          )
-
-        );
+          initialRoute: initialRoute,
+          onGenerateRoute: generateRoute,
+          debugShowCheckedModeBanner: false,
+          navigatorObservers: [...anaAllObs()],
+        ));
       },
     );
   }

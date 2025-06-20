@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/login_service.dart';
 import '../../services/note_service.dart';
-
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:geocoding/geocoding.dart' as geocoding;
 
 // 泡泡模型
 class Bubble {
@@ -11,7 +14,11 @@ class Bubble {
   Offset velocity;
   double size;
   Color color;
-  Bubble({required this.position, required this.velocity, required this.size, required this.color});
+  Bubble(
+      {required this.position,
+      required this.velocity,
+      required this.size,
+      required this.color});
 }
 
 // 绘制泡泡
@@ -27,6 +34,7 @@ class BubblePainter extends CustomPainter {
       canvas.drawCircle(Offset(x, y), b.size, paint);
     }
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
@@ -38,13 +46,16 @@ class HeaderClipper extends CustomClipper<Path> {
     final path = Path();
     path.lineTo(0, size.height - 50);
     path.quadraticBezierTo(
-      size.width / 2, size.height,
-      size.width, size.height - 50,
+      size.width / 2,
+      size.height,
+      size.width,
+      size.height - 50,
     );
     path.lineTo(size.width, 0);
     path.close();
     return path;
   }
+
   @override
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
@@ -57,7 +68,8 @@ class NotePage extends StatefulWidget {
   _NotePageState createState() => _NotePageState();
 }
 
-class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin {
+class _NotePageState extends State<NotePage>
+    with SingleTickerProviderStateMixin {
   final NoteService _noteService = NoteService();
   late AnimationController _controller;
   final List<Bubble> _bubbles = [];
@@ -69,13 +81,17 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
 
   String? _userId;
   bool _loading = false;
+  double? _latitude;
+  double? _longitude;
+  String _address = '';
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: Duration(milliseconds: 16))
-      ..addListener(_moveBubbles)
-      ..repeat();
+    _controller =
+        AnimationController(vsync: this, duration: Duration(milliseconds: 16))
+          ..addListener(_moveBubbles)
+          ..repeat();
     _init();
   }
 
@@ -87,12 +103,42 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
     }
     _userId = user.id;
 
-    // 获取位置
+    // 优先用 geolocator 获取经纬度
     try {
-      final loc = await _noteService.getLocation();
-      _positionController.text = '${loc['country']}${loc['province']} ${loc['city']}';
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw Exception('定位服务未开启');
+      }
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('定位权限被拒绝');
+        }
+      }
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('定位权限永久被拒绝');
+      }
+      Position pos = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      _latitude = pos.latitude;
+      _longitude = pos.longitude;
+      print('获取到的经纬度: 经度: \\${_longitude}, 纬度: \\${_latitude}');
+      _positionController.text = '';
+      // 优先用 geocoding 本地逆地理编码
+      await _getAddressFromGeocoding(_latitude!, _longitude!);
     } catch (e) {
-      debugPrint('获取位置失败: $e');
+      debugPrint('geolocator定位失败: $e');
+      // 获取位置（后端IP定位，可能为空）
+      try {
+        final loc = await _noteService.getLocation();
+        _positionController.text = '';
+        _address = '\\${loc['country']}\\${loc['province']} \\${loc['city']}';
+      } catch (e) {
+        debugPrint('获取位置失败: $e');
+        _positionController.text = '';
+        _address = '定位失败';
+      }
     }
 
     // 获取天气
@@ -107,13 +153,60 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
     setState(() {});
   }
 
+  Future<void> _getAddressFromGeocoding(double lat, double lng) async {
+    try {
+      final placemarks = await geocoding.placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty) {
+        final p = placemarks.first;
+        _address = [
+          p.country,
+          p.administrativeArea,
+          p.locality,
+          p.street,
+          p.name
+        ].where((e) => e != null && e.isNotEmpty).join(' ');
+        _positionController.text = _address;
+      } else {
+        _address = '未能获取详细地址';
+        _positionController.text = _address;
+      }
+    } catch (e) {
+      debugPrint('本地逆地理失败: $e');
+      // 降级用高德API
+      await _getAddressFromLatLng(lat, lng);
+    }
+  }
+
+  Future<void> _getAddressFromLatLng(double lat, double lng) async {
+    try {
+      // 这里用高德逆地理API（需替换为你自己的key）
+      final apiKey = '你的高德Key';
+      final url =
+          'https://restapi.amap.com/v3/geocode/regeo?location=\\$lng,\\$lat&key=\\$apiKey&radius=1000&extensions=base';
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final addr = data['regeocode']?['formatted_address'] ?? '';
+        _address = addr.isNotEmpty ? addr : '未能获取详细地址';
+        _positionController.text = _address;
+      } else {
+        _address = '逆地理编码失败';
+        _positionController.text = _address;
+      }
+    } catch (e) {
+      _address = '逆地理编码异常';
+      _positionController.text = _address;
+    }
+  }
 
   void _moveBubbles() {
     final size = MediaQuery.of(context).size;
     setState(() {
       for (var b in _bubbles) {
-        final dx = (b.position.dx * size.width + b.velocity.dx).clamp(0, size.width);
-        final dy = (b.position.dy * size.height + b.velocity.dy).clamp(0, size.height);
+        final dx =
+            (b.position.dx * size.width + b.velocity.dx).clamp(0, size.width);
+        final dy =
+            (b.position.dy * size.height + b.velocity.dy).clamp(0, size.height);
         b.position = Offset(dx / size.width, dy / size.height);
       }
     });
@@ -141,7 +234,8 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
     if (_userId == null) return;
     final content = _noteController.text.trim();
     if (content.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('笔记内容不能为空')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('笔记内容不能为空')));
       return;
     }
 
@@ -162,7 +256,8 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
         throw Exception('接口返回失败');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('保存失败: \$e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('保存失败: \$e')));
     } finally {
       setState(() => _loading = false);
     }
@@ -209,7 +304,8 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
                               filled: true,
                               fillColor: Colors.white.withOpacity(0.4),
                               border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                                  borderRadius: BorderRadius.circular(30),
+                                  borderSide: BorderSide.none),
                             ),
                             onSubmitted: (_) => _addTag(),
                           ),
@@ -230,7 +326,11 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
                             hintText: '位置',
                             filled: true,
                             fillColor: Colors.white.withOpacity(0.9),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none),
+                            prefixIcon: Icon(Icons.location_on,
+                                color: Colors.pinkAccent),
                           ),
                         ),
                         SizedBox(height: 12),
@@ -240,7 +340,9 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
                             hintText: '天气',
                             filled: true,
                             fillColor: Colors.white.withOpacity(0.9),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none),
                           ),
                         ),
                         SizedBox(height: 12),
@@ -251,7 +353,9 @@ class _NotePageState extends State<NotePage> with SingleTickerProviderStateMixin
                             hintText: '在这里输入你的笔记...',
                             filled: true,
                             fillColor: Colors.white.withOpacity(0.9),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none),
                           ),
                         ),
                       ],

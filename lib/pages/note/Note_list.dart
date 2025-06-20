@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../../routes/route_name.dart';       // 使用路由常量
+import '../../routes/route_name.dart'; // 使用路由常量
 import '../../services/login_service.dart';
 import '../../services/note_service.dart';
-import 'batch_edit.dart';  // 整理结果页
+import 'batch_edit.dart'; // 整理结果页
 import '../../models/note.dart';
 import 'package:http/http.dart' as http;
 
@@ -17,7 +17,7 @@ class NoteListPage extends StatefulWidget {
 }
 
 class _NoteListPageState extends State<NoteListPage> {
-  final String _baseUrl = 'http://127.0.0.1:8001/service/note';
+  final String _baseUrl = 'http://10.22.66.126:8001/service/note';
   List<Note> _notes = [];
   Set<String> _selectedIds = {};
   bool _selectionMode = false;
@@ -44,7 +44,9 @@ class _NoteListPageState extends State<NoteListPage> {
         final body = jsonDecode(bodyStr);
         final list = body['data']['items'] as List<dynamic>;
         setState(() {
-          _notes = list.map((e) => Note.fromJson(e as Map<String, dynamic>)).toList();
+          _notes = list
+              .map((e) => Note.fromJson(e as Map<String, dynamic>))
+              .toList();
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -81,49 +83,53 @@ class _NoteListPageState extends State<NoteListPage> {
               onPressed: _selectedIds.isEmpty
                   ? null
                   : () async {
-                final user = await LoginService.getCurrentUser();
-                if (user == null) {
-                  Navigator.pushReplacementNamed(context, RouteName.login);
-                  return;
-                }
-                final userId = user.id;
+                      final user = await LoginService.getCurrentUser();
+                      if (user == null) {
+                        Navigator.pushReplacementNamed(
+                            context, RouteName.login);
+                        return;
+                      }
+                      final userId = user.id;
 
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (_) => const Center(child: CircularProgressIndicator()),
-                );
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) =>
+                            const Center(child: CircularProgressIndicator()),
+                      );
 
-                try {
-                  final response = await http.post(
-                    Uri.parse('$_baseUrl/generateTravelGuide')
-                        .replace(queryParameters: {'userId': userId}),
-                    headers: {'Content-Type': 'application/json'},
-                    body: jsonEncode(_selectedIds.toList()),
-                  );
-                  Navigator.pop(context);
+                      try {
+                        final response = await http.post(
+                          Uri.parse('$_baseUrl/generateTravelGuide')
+                              .replace(queryParameters: {'userId': userId}),
+                          headers: {'Content-Type': 'application/json'},
+                          body: jsonEncode(_selectedIds.toList()),
+                        );
+                        Navigator.pop(context);
 
-                  if (!mounted) return;
-                  if (response.statusCode == 200) {
-                    // 同样使用 UTF-8 解码
-                    final respStr = utf8.decode(response.bodyBytes);
-                    final respBody = jsonDecode(respStr);
-                    final guide = respBody['data']['travelGuide'] as String;
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => BatchGeneratePage(travelGuide: guide),
-                      ),
-                    );
-                  } else {
-                    throw Exception('接口返回状态码：${response.statusCode}');
-                  }
-                } catch (e) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('调用生成接口失败：$e')),
-                  );
-                }
-              },
+                        if (!mounted) return;
+                        if (response.statusCode == 200) {
+                          // 同样使用 UTF-8 解码
+                          final respStr = utf8.decode(response.bodyBytes);
+                          final respBody = jsonDecode(respStr);
+                          final guide =
+                              respBody['data']['travelGuide'] as String;
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  BatchGeneratePage(travelGuide: guide),
+                            ),
+                          );
+                        } else {
+                          throw Exception('接口返回状态码：${response.statusCode}');
+                        }
+                      } catch (e) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('调用生成接口失败：$e')),
+                        );
+                      }
+                    },
             ),
         ],
       ),
@@ -165,7 +171,7 @@ class _NoteListPageState extends State<NoteListPage> {
               }
               final userId = user.id;
               // 增加 userId 作为删除请求参数
-              final success = await NoteService.deleteNote(userId,note.id);
+              final success = await NoteService.deleteNote(userId, note.id);
               if (success) {
                 setState(() {
                   _notes.removeAt(index);

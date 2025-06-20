@@ -15,7 +15,7 @@ enum ENV {
 
 // dio请求前缀
 final Map<ENV, String> _baseUrl = {
-  ENV.DEV: 'https://apifoxmock.com',
+  ENV.DEV: 'http://10.22.66.126:8001',
   ENV.TEST: 'https://urltest.com',
   ENV.PRE: 'https://urlpre.com',
   ENV.PROD: 'https://url.com',
@@ -29,6 +29,7 @@ class AppEnv {
   String _androidChannel = '';
 
   void init() {
+    currentEnv = ENV.DEV;
     const envStr = String.fromEnvironment("INIT_ENV", defaultValue: "prod");
     if (!kIsWeb && Platform.isAndroid) {
       _androidChannel =

@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/note.dart';
+import '../config/app_config.dart';
 
 class NoteService {
-  static const _baseUrl = 'http://127.0.0.1:8001/service/note';
+  static String get _baseUrl => '${AppConfig.host}/service/note';
 
   /// 获取用户所有笔记
   static Future<List<Note>> getNotesByUserId(String userId) async {
@@ -19,7 +20,9 @@ class NoteService {
         final data = body['data'] as Map<String, dynamic>;
         final items = data['items'] as List;
 
-        return items.map((e) => Note.fromJson(e as Map<String, dynamic>)).toList();
+        return items
+            .map((e) => Note.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
     }
     throw Exception('获取笔记失败: ${resp.body}');
@@ -36,7 +39,6 @@ class NoteService {
   }) async {
     final uri = Uri.parse('$_baseUrl/addNote');
     final body = {
-
       'content': content,
       'position': position,
       'userId': userId,
@@ -55,9 +57,11 @@ class NoteService {
       final resp = jsonDecode(bodyStr);
       return resp['success'] == true && resp['code'] == 20000;
     } else {
-      throw Exception('Add note failed (status=${response.statusCode}): ${response.body}');
+      throw Exception(
+          'Add note failed (status=${response.statusCode}): ${response.body}');
     }
   }
+
   /// 获取位置
   Future<Map<String, String>> getLocation() async {
     final uri = Uri.parse('$_baseUrl/getLocation');
@@ -78,15 +82,16 @@ class NoteService {
 
   /// 获取天气
   Future<String> getWeather() async {
+    print('【调试】准备请求后端天气接口...');
     final uri = Uri.parse('$_baseUrl/getWeather');
     final response = await http.get(uri);
+    print('【调试】天气接口响应: \\${response.statusCode} \\${response.body}');
     if (response.statusCode == 200) {
       final bodyStr = utf8.decode(response.bodyBytes);
       final resp = jsonDecode(bodyStr);
-
       return resp['data']['weather'];
     } else {
-      throw Exception('Get weather failed: \${response.statusCode}');
+      throw Exception('Get weather failed: \\${response.statusCode}');
     }
   }
 
@@ -103,5 +108,4 @@ class NoteService {
     }
     return false;
   }
-
 }

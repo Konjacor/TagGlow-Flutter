@@ -30,7 +30,8 @@ class TagWallPage extends StatefulWidget {
   _TagWallPageState createState() => _TagWallPageState();
 }
 
-class _TagWallPageState extends State<TagWallPage> with TickerProviderStateMixin {
+class _TagWallPageState extends State<TagWallPage>
+    with TickerProviderStateMixin {
   late AnimationController _flyController;
   late AnimationController _moveController;
   late AnimationController _breathController;
@@ -38,7 +39,7 @@ class _TagWallPageState extends State<TagWallPage> with TickerProviderStateMixin
 
   final List<TagBubble> _bubbles = [];
   final Random _rand = Random();
-  final String _baseUrl = 'http://127.0.0.1:8001/service/tag';
+  final String _baseUrl = 'http://10.22.66.126:8001/service/tag';
 
   @override
   void initState() {
@@ -78,11 +79,16 @@ class _TagWallPageState extends State<TagWallPage> with TickerProviderStateMixin
       final type = tag['type'] as String;
       // 随机角度
       final angle = _rand.nextDouble() * 2 * pi;
-      final normR = type == 'b' ? 0.25 + _rand.nextDouble() * 0.1 : 0.45 + _rand.nextDouble() * 0.05;
+      final normR = type == 'b'
+          ? 0.25 + _rand.nextDouble() * 0.1
+          : 0.45 + _rand.nextDouble() * 0.05;
       final target = Offset(0.5 + normR * cos(angle), 0.5 + normR * sin(angle));
-      final radius = type == 'b' ? (20 + content.length * 5).clamp(30, 80) .toDouble(): 15 + _rand.nextDouble() * 10;
+      final radius = type == 'b'
+          ? (20 + content.length * 5).clamp(30, 80).toDouble()
+          : 15 + _rand.nextDouble() * 10;
       final color = type == 'b'
-          ? Colors.primaries[_rand.nextInt(Colors.primaries.length)].withOpacity(0.5)
+          ? Colors.primaries[_rand.nextInt(Colors.primaries.length)]
+              .withOpacity(0.5)
           : Colors.grey.shade400.withOpacity(0.5);
       _bubbles.add(TagBubble(
         text: content,
@@ -120,7 +126,8 @@ class _TagWallPageState extends State<TagWallPage> with TickerProviderStateMixin
     _moveController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 16),
-    )..addListener(_updatePositions)
+    )
+      ..addListener(_updatePositions)
       ..repeat();
 
     _breathController = AnimationController(
@@ -143,7 +150,8 @@ class _TagWallPageState extends State<TagWallPage> with TickerProviderStateMixin
           (_rand.nextDouble() * 2 - 1) * speed,
         );
       }
-      var newPos = Offset(b.position.dx + b.velocity.dx, b.position.dy + b.velocity.dy);
+      var newPos =
+          Offset(b.position.dx + b.velocity.dx, b.position.dy + b.velocity.dy);
       final maxDist = b.hasText ? 0.35 : 0.5;
       final dx = newPos.dx - 0.5;
       final dy = newPos.dy - 0.5;
@@ -155,7 +163,8 @@ class _TagWallPageState extends State<TagWallPage> with TickerProviderStateMixin
           b.velocity.dx - 2 * dot * normal.dx,
           b.velocity.dy - 2 * dot * normal.dy,
         );
-        newPos = Offset(b.position.dx + b.velocity.dx, b.position.dy + b.velocity.dy);
+        newPos = Offset(
+            b.position.dx + b.velocity.dx, b.position.dy + b.velocity.dy);
       }
       b.position = newPos;
     }
@@ -246,13 +255,13 @@ class _TagWallPageState extends State<TagWallPage> with TickerProviderStateMixin
                     ),
                     child: b.hasText
                         ? Text(
-                      b.text,
-                      style: GoogleFonts.robotoSlab(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    )
+                            b.text,
+                            style: GoogleFonts.robotoSlab(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          )
                         : null,
                   ),
                 ),

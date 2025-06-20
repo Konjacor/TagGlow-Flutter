@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/login_service.dart';
 import '../../models/user_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RegisterPage extends StatefulWidget {
   @override
@@ -11,13 +12,14 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameCtrl  = TextEditingController();
-  final _passwordCtrl  = TextEditingController();
-  final _avatarCtrl    = TextEditingController();
+  final _usernameCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  final _avatarCtrl = TextEditingController();
   final _signatureCtrl = TextEditingController();
 
   bool _loading = false;
   String? _errorMsg;
+  bool _hasPopped = false;
 
   @override
   Widget build(BuildContext context) {
@@ -76,21 +78,21 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     child: _loading
                         ? SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
                         : Text(
-                      '注册',
-                      style: GoogleFonts.robotoSlab(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+                            '注册',
+                            style: GoogleFonts.robotoSlab(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ],
@@ -103,23 +105,48 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Future<void> _onRegisterPressed() async {
     if (!_formKey.currentState!.validate()) return;
-
-    setState(() { _loading = true; _errorMsg = null; });
+    if (!mounted || _hasPopped) return;
+    setState(() {
+      _loading = true;
+      _errorMsg = null;
+    });
     try {
+      print(
+          '开始注册: username=${_usernameCtrl.text.trim()}, avatar=${_avatarCtrl.text.trim()}');
       User user = await AuthService.register(
         username: _usernameCtrl.text.trim(),
         password: _passwordCtrl.text,
         avatar: _avatarCtrl.text.trim(),
         signature: _signatureCtrl.text.trim(),
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('欢迎 ${user.username} 注册成功！'))
-      );
-      Navigator.pop(context);
+      print('注册成功: $user');
+      // 注册成功后自动保存用户信息到本地
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_id', user.id);
+      await prefs.setString('username', user.username);
+      await prefs.setString('avatar', user.avatar);
+      await prefs.setString('signature', user.signature);
+      await prefs.setString('gmt_create', user.gmtCreate);
+      await prefs.setString('gmt_modified', user.gmtModified);
+      await prefs.setInt('is_deleted', user.isDeleted);
+      await prefs.setBool('is_logged_in', true);
+      if (!mounted || _hasPopped) return;
+      _hasPopped = true;
+      Navigator.of(context)
+          .pushNamedAndRemoveUntil('/appMain', (route) => false);
+      return;
     } catch (e) {
-      setState(() { _errorMsg = e.toString(); });
+      print('注册异常: $e');
+      if (!mounted || _hasPopped) return;
+      setState(() {
+        _errorMsg = e.toString();
+      });
     } finally {
-      setState(() { _loading = false; });
+      if (mounted && !_hasPopped) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 

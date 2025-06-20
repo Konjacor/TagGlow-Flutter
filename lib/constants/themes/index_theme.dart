@@ -57,7 +57,7 @@ final ThemeData themeTagGlowDark = ThemeData(
     hintStyle: TextStyle(color: Colors.white54),
   ),
   bottomAppBarTheme: const BottomAppBarTheme(color: Color(0xFF232946)),
-  tabBarTheme: const TabBarTheme(
+  tabBarTheme: const TabBarThemeData(
     labelColor: Color(0xFFB0C4DE),
     unselectedLabelColor: Colors.white54,
     indicatorSize: TabBarIndicatorSize.tab,

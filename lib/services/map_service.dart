@@ -1,10 +1,11 @@
 // 在 services/login_service.dart 里
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/note_detail.dart';  // 新增一个 detail 模型
+import '../models/note_detail.dart'; // 新增一个 detail 模型
+import '../config/app_config.dart';
 
 class MapService {
-  static const _baseUrl = 'http://127.0.0.1:8001/service/map';
+  static String get _baseUrl => '${AppConfig.host}/service/map';
 
   /// 获取单条笔记详情
   static Future<NoteDetail> getNoteDetail(String noteId) async {
@@ -16,7 +17,8 @@ class MapService {
       final bodyStr = utf8.decode(resp.bodyBytes);
       final body = jsonDecode(bodyStr);
       if (body['success'] == true) {
-        return NoteDetail.fromJson(body['data']['note'], body['data']['pictures']);
+        return NoteDetail.fromJson(
+            body['data']['note'], body['data']['pictures']);
       } else {
         throw Exception(body['message']);
       }

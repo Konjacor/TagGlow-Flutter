@@ -42,7 +42,7 @@ class _DiaryHomePageState extends State<DiaryHomePage> {
   @override
   void initState() {
     super.initState();
-    // 在卡片流最前面插入“今日笔记”卡片
+    // 在卡片流最前面插入"今日笔记"卡片
     final now = DateTime.now();
     final dateStr = DateFormat('yyyy年MM月dd日').format(now);
     final dayStr = DateFormat('d').format(now);
@@ -51,7 +51,7 @@ class _DiaryHomePageState extends State<DiaryHomePage> {
       'title': '今日笔记',
       'date': dateStr,
       'day': dayStr,
-      'cover': 'asset/images/kitty.png', 
+      'cover': 'asset/images/kitty.png',
       'tip': '疲惫的一天终于结束\n打开日记写下今天的故事叭',
     });
   }
@@ -130,11 +130,8 @@ class _DiaryHomePageState extends State<DiaryHomePage> {
                                   child: InkWell(
                                     borderRadius: BorderRadius.circular(20),
                                     onTap: () {
-                                      Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const NotePage()));
+                                      Navigator.pushNamed(
+                                          context, '/themeSelection');
                                     },
                                     child: Column(
                                       crossAxisAlignment:

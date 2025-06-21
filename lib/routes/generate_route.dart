@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import '../pages/error_page/error_page.dart';
 import './routes_data.dart'; // 路由页面定义
 
-typedef RouterDataV = StatefulWidget Function(BuildContext context,
-    {dynamic params});
+typedef RouterDataV = Widget Function(BuildContext context, {dynamic params});
 
 // 统一封装路由传递参数
 Route<dynamic> generateRoute(RouteSettings settings) {

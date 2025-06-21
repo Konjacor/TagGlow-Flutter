@@ -7,6 +7,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:geocoding/geocoding.dart' as geocoding;
+import '../../utils/tool/sp_util.dart';
+import '../../routes/route_name.dart'; // 确保引入
 
 // 泡泡模型
 class Bubble {
@@ -62,7 +64,9 @@ class HeaderClipper extends CustomClipper<Path> {
 
 class NotePage extends StatefulWidget {
   final String? userId; // 可通过构造传入
-  const NotePage({Key? key, this.userId}) : super(key: key);
+  final int? classificationId; // 新增：主题ID
+  const NotePage({Key? key, this.userId, this.classificationId})
+      : super(key: key);
 
   @override
   _NotePageState createState() => _NotePageState();
@@ -84,6 +88,7 @@ class _NotePageState extends State<NotePage>
   double? _latitude;
   double? _longitude;
   String _address = '';
+  List<String> _tags = []; // 用于存储标签
 
   @override
   void initState() {
@@ -138,6 +143,32 @@ class _NotePageState extends State<NotePage>
         debugPrint('获取位置失败: $e');
         _positionController.text = '';
         _address = '定位失败';
+      }
+    }
+
+    // 如果有主题ID，则获取默认AI标签
+    if (widget.classificationId != null) {
+      try {
+        print('正在为主题ID ${widget.classificationId} 获取默认AI标签...');
+        final defaultTags = await NoteService.getNoteDefaultAiTag(
+          userId: _userId!,
+          position: _address.isNotEmpty ? _address : '未知',
+          classification: widget.classificationId!,
+        );
+        // 解析并设置AI标签
+        setState(() {
+          _tags = defaultTags
+              .split(RegExp(r'[#\n]'))
+              .where((s) => s.isNotEmpty)
+              .toList();
+        });
+        print('默认AI标签获取成功: $defaultTags');
+      } catch (e) {
+        debugPrint('获取默认AI标签失败: $e');
+        // 可以在这里给用户一个提示，比如用SnackBar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('获取推荐标签失败: $e')),
+        );
       }
     }
 
@@ -225,8 +256,10 @@ class _NotePageState extends State<NotePage>
   void _addTag() {
     final tag = _tagController.text.trim();
     if (tag.isNotEmpty) {
-      // 若后端支持 tags，可加入列表逻辑
-      _tagController.clear();
+      setState(() {
+        _tags.add(tag);
+        _tagController.clear();
+      });
     }
   }
 
@@ -238,28 +271,63 @@ class _NotePageState extends State<NotePage>
           .showSnackBar(SnackBar(content: Text('笔记内容不能为空')));
       return;
     }
-
-    setState(() => _loading = true);
-    final noteId = DateTime.now().millisecondsSinceEpoch.toString();
+    setState(() {
+      _loading = true;
+    });
     try {
-      final success = await NoteService.addNote(
-        id: noteId,
-        content: content,
-        position: _positionController.text.trim(),
+      final response = await NoteService.saveNote(
+        content: _noteController.text,
+        position: _address,
         userId: _userId!,
         weather: _weatherController.text.trim(),
-        tags: [],
+        tags: _tags,
+        classificationId: widget.classificationId,
       );
-      if (success) {
-        Navigator.pop(context, true);
-      } else {
-        throw Exception('接口返回失败');
-      }
+
+      // 调试：打印完整的后端响应
+      print('【后端响应】: $response');
+
+      setState(() {
+        _loading = false;
+      });
+
+      // 保存成功后，显示AI回复对话框
+      await showDialog(
+        context: context,
+        barrierDismissible: false, // 用户必须点击按钮才能关闭
+        builder: (BuildContext context) {
+          // 修正：从 response['data']['aiReply'] 获取AI回复
+          final aiReply = response['data']?['aiReply'] as String? ?? '笔记已成功保存！';
+
+          return AlertDialog(
+            title: Text('AI 小助手'),
+            content: SingleChildScrollView(
+              // 使用可滚动视图以防内容过长
+              child: Text(aiReply.isNotEmpty ? aiReply : '笔记已成功保存！'),
+            ),
+            actions: [
+              TextButton(
+                child: Text('好的'),
+                onPressed: () {
+                  // 修正：使用刚刚注册好的 noteList 路由
+                  Navigator.of(context).pushNamedAndRemoveUntil(
+                    RouteName.noteList,
+                    (route) => route.isFirst, // 跳转到列表页，并保留首页
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      );
+
+      // Navigator.pop(context); // 确保这行是注释掉或者移除的
     } catch (e) {
+      setState(() {
+        _loading = false;
+      });
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('保存失败: \$e')));
-    } finally {
-      setState(() => _loading = false);
+          .showSnackBar(SnackBar(content: Text('保存出错: $e')));
     }
   }
 
@@ -267,12 +335,20 @@ class _NotePageState extends State<NotePage>
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         actions: [
-          IconButton(onPressed: _saveNote, icon: Icon(Icons.save)),
+          // 增加加载状态判断，防止重复点击
+          IconButton(
+            icon: Icon(Icons.save, color: Colors.white),
+            onPressed: _loading ? null : _saveNote,
+          ),
         ],
       ),
       body: Stack(
@@ -294,24 +370,58 @@ class _NotePageState extends State<NotePage>
                   SizedBox(height: 16),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _tagController,
-                            decoration: InputDecoration(
-                              hintText: '添加标签',
-                              filled: true,
-                              fillColor: Colors.white.withOpacity(0.4),
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                  borderSide: BorderSide.none),
-                            ),
-                            onSubmitted: (_) => _addTag(),
+                        // 标签展示区域
+                        if (_tags.isNotEmpty)
+                          Wrap(
+                            spacing: 8.0,
+                            runSpacing: 4.0,
+                            children: _tags
+                                .map((tag) => Chip(
+                                      label: Text(tag),
+                                      onDeleted: () {
+                                        setState(() {
+                                          _tags.remove(tag);
+                                        });
+                                      },
+                                      deleteIconColor: Colors.red.shade300,
+                                      backgroundColor:
+                                          Colors.white.withOpacity(0.8),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                        side: BorderSide(
+                                            color: Colors.grey.shade300),
+                                      ),
+                                    ))
+                                .toList(),
                           ),
+                        if (_tags.isNotEmpty) const SizedBox(height: 12),
+                        // 标签输入区域
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _tagController,
+                                decoration: InputDecoration(
+                                  hintText: '添加自定义标签',
+                                  filled: true,
+                                  fillColor: Colors.white.withOpacity(0.4),
+                                  border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                      borderSide: BorderSide.none),
+                                ),
+                                onSubmitted: (_) => _addTag(),
+                              ),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.add_circle,
+                                  size: 30, color: Colors.white),
+                              onPressed: _addTag,
+                            ),
+                          ],
                         ),
-                        SizedBox(width: 8),
-                        Icon(Icons.add_circle, size: 30, color: Colors.white),
                       ],
                     ),
                   ),
@@ -366,6 +476,16 @@ class _NotePageState extends State<NotePage>
               ),
             ),
           ),
+          // 添加全局加载动画
+          if (_loading)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+            ),
         ],
       ),
     );

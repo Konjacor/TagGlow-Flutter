@@ -34,7 +34,9 @@ class _MapPageState extends State<MapPage> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(loc.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(loc.name,
+              style:
+                  const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Text(loc.description),
           const SizedBox(height: 8),
@@ -47,45 +49,51 @@ class _MapPageState extends State<MapPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('高德地图 - 标记示例')),
-      body: FlutterMap(
-        mapController: _mapController,
-        options: MapOptions(
-          center: _locations.first.position,
-          zoom: 10.0,
-        ),
-        children: [
-          TileLayer(
-            urlTemplate:
-            'https://t{s}.tianditu.gov.cn/vec_w/wmts?'
-                'service=WMTS&request=GetTile&version=1.0.0&'
-                'layer=vec&style=default&tilematrixset=w&format=tiles&'
-                'tilecol={x}&tilerow={y}&tilematrix={z}&tk=681864dd26975e37cd94b2c699448a4d',
-            subdomains: const ['0', '1', '2', '3', '4', '5', '6', '7'],
-            userAgentPackageName: 'com.example.flutter_map_demo',
+        appBar: AppBar(title: const Text('高德地图 - 标记示例')),
+        body: FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            center: _locations.first.position,
+            zoom: 18.0,
           ),
-          MarkerLayer(
-            markers: _locations.map((loc) {
-              return Marker(
-                point: loc.position,
-                width: 80,
-                height: 80,
-                builder: (ctx) => GestureDetector(
-                  onTap: () {
-                    showModalBottomSheet(
-                      context: context,
-                      builder: (_) => _buildLocationSheet(loc),
-                    );
-                  },
-                  child: const Icon(Icons.location_on, size: 36, color: Colors.red),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      )
-
-    );
+          children: [
+            TileLayer(
+              urlTemplate: 'https://t{s}.tianditu.gov.cn/vec_w/wmts?'
+                  'service=WMTS&request=GetTile&version=1.0.0&'
+                  'layer=vec&style=default&tilematrixset=w&format=tiles&'
+                  'tilecol={x}&tilerow={y}&tilematrix={z}&tk=681864dd26975e37cd94b2c699448a4d',
+              subdomains: const ['0', '1', '2', '3', '4', '5', '6', '7'],
+              userAgentPackageName: 'com.example.flutter_map_demo',
+            ),
+            TileLayer(
+              urlTemplate: 'https://t{s}.tianditu.gov.cn/cva_w/wmts?'
+                  'service=WMTS&request=GetTile&version=1.0.0&'
+                  'layer=cva&style=default&tilematrixset=w&format=tiles&'
+                  'tilecol={x}&tilerow={y}&tilematrix={z}&tk=681864dd26975e37cd94b2c699448a4d',
+              subdomains: const ['0', '1', '2', '3', '4', '5', '6', '7'],
+              userAgentPackageName: 'com.example.flutter_map_demo',
+            ),
+            MarkerLayer(
+              markers: _locations.map((loc) {
+                return Marker(
+                  point: loc.position,
+                  width: 80,
+                  height: 80,
+                  builder: (ctx) => GestureDetector(
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (_) => _buildLocationSheet(loc),
+                      );
+                    },
+                    child: const Icon(Icons.location_on,
+                        size: 36, color: Colors.red),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ));
   }
 }
 

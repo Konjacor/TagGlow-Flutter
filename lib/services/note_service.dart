@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import '../models/note.dart';
 import '../config/app_config.dart';
 
@@ -15,50 +16,72 @@ class NoteService {
       final bodyStr = utf8.decode(resp.bodyBytes);
       final body = jsonDecode(bodyStr);
 
-      if (body['success'] == true) {
-        // 根据实际返回结构调整，现在数据在 data.items 中
-        final data = body['data'] as Map<String, dynamic>;
-        final items = data['items'] as List;
+      // 修正：此接口的成功 code 是 20000
+      if (body['code']?.toString() == '20000' &&
+          body['data']?['items'] != null) {
+        final items = body['data']['items'] as List;
 
         return items
             .map((e) => Note.fromJson(e as Map<String, dynamic>))
             .toList();
+      } else {
+        // 抛出包含原始响应的错误，方便调试。
+        throw Exception('未能解析笔记列表。后端原始返回: $bodyStr');
       }
     }
-    throw Exception('获取笔记失败: ${resp.body}');
+    throw Exception('获取笔记接口失败: ${resp.statusCode}');
   }
 
-  /// 新增笔记
-  static Future<bool> addNote({
-    required String id,
+  /// 保存笔记，包括内容和标签
+  static Future<Map<String, dynamic>> saveNote({
     required String content,
     required String position,
     required String userId,
     required String weather,
     required List<String> tags,
+    int? classificationId,
   }) async {
-    final uri = Uri.parse('$_baseUrl/addNote');
-    final body = {
+    // 构造请求的 URI，将 tagList 作为查询参数
+    final uri = Uri.parse('$_baseUrl/saveNote').replace(queryParameters: {
+      'tagList': tags,
+    });
+
+    // 构造请求体 note 对象
+    final noteBody = {
       'content': content,
       'position': position,
       'userId': userId,
       'weather': weather,
-      // 如果后端支持 tags 字段，可以启用以下行：
-      // 'tags': tags,
+      'classification': classificationId,
+      // 修正：将时间格式化为后端需要的 'yyyy-MM-dd'T'HH:mm:ss.SSSZ' 格式
+      'time': DateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+          .format(DateTime.now().toUtc()),
     };
+
     final response = await http.post(
       uri,
       headers: {'Content-Type': 'application/json; charset=utf-8'},
-      body: jsonEncode(body),
+      body: jsonEncode(noteBody),
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       final bodyStr = utf8.decode(response.bodyBytes);
       final resp = jsonDecode(bodyStr);
-      return resp['success'] == true && resp['code'] == 20000;
+
+      // 全新、更健壮的成功判断逻辑：
+      // 修正：后端返回的字段是 'aiReply' 而不是 'content'
+      final aiContent = resp['data']?['aiReply'] as String?;
+
+      if (aiContent != null && aiContent.isNotEmpty) {
+        // 只要有 AI 回复，就认为是成功！
+        return resp;
+      } else {
+        // 如果没有AI回复，抛出包含原始响应的错误，方便调试。
+        throw Exception('未能解析AI回复。后端原始返回: $bodyStr');
+      }
     } else {
       throw Exception(
-          'Add note failed (status=${response.statusCode}): ${response.body}');
+          '保存笔记接口失败 (status=${response.statusCode}): ${response.body}');
     }
   }
 
@@ -76,7 +99,7 @@ class NoteService {
         'city': loc['city'],
       };
     } else {
-      throw Exception('Get location failed: \${response.statusCode}');
+      throw Exception('Get location failed: ${response.statusCode}');
     }
   }
 
@@ -85,13 +108,13 @@ class NoteService {
     print('【调试】准备请求后端天气接口...');
     final uri = Uri.parse('$_baseUrl/getWeather');
     final response = await http.get(uri);
-    print('【调试】天气接口响应: \\${response.statusCode} \\${response.body}');
+    print('【调试】天气接口响应: ${response.statusCode} ${response.body}');
     if (response.statusCode == 200) {
       final bodyStr = utf8.decode(response.bodyBytes);
       final resp = jsonDecode(bodyStr);
       return resp['data']['weather'];
     } else {
-      throw Exception('Get weather failed: \\${response.statusCode}');
+      throw Exception('Get weather failed: ${response.statusCode}');
     }
   }
 
@@ -107,5 +130,45 @@ class NoteService {
       return body['success'] == true;
     }
     return false;
+  }
+
+  /// 根据主题ID获取主题名称
+  static Future<String> getClassificationName(int classification) async {
+    final uri = Uri.parse('$_baseUrl/getClassificationName/$classification');
+    final response = await http.get(uri, headers: {'Accept': 'text/plain'});
+    if (response.statusCode == 200) {
+      return utf8.decode(response.bodyBytes);
+    } else {
+      throw Exception('获取主题名称失败: ${response.statusCode}');
+    }
+  }
+
+  /// 根据主题、用户、位置生成默认AI标签
+  static Future<String> getNoteDefaultAiTag({
+    required String userId,
+    required String position,
+    required int classification,
+  }) async {
+    final uri =
+        Uri.parse('$_baseUrl/NoteDefaultaitag').replace(queryParameters: {
+      'userId': userId,
+      'position': position,
+      'classification': classification.toString(),
+    });
+    final response = await http.post(
+      uri,
+      headers: {'Accept': 'application/json'},
+    );
+    if (response.statusCode == 200) {
+      final bodyStr = utf8.decode(response.bodyBytes);
+      final resp = jsonDecode(bodyStr);
+      if (resp['success'] == true) {
+        return resp['data']['NoteDefaultaitag'] as String;
+      } else {
+        throw Exception('获取AI标签失败: ${resp['message']}');
+      }
+    } else {
+      throw Exception('获取AI标签接口失败: ${response.statusCode}');
+    }
   }
 }

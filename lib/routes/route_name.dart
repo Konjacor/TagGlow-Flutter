@@ -19,17 +19,21 @@ class RouteName {
   static String register = '/register';
 
   /// 笔记页
-  static  String notePage = '/note';
+  static String notePage = '/note';
   //tag页
-  static  String tagPage = '/tagPage';
- //map页
-  static  String MapPage = '/MapPage';
+  static String tagPage = '/tagPage';
+  //map页
+  static String MapPage = '/MapPage';
   //笔记导出页
-  static  String BatchGeneratePage = '/BatchGeneratePage';
+  static String BatchGeneratePage = '/BatchGeneratePage';
   //注册
-  static  String registerPage = '/register';
+  static String registerPage = '/register';
 
-  static  String DiaryHomePage = '/home';
+  static String DiaryHomePage = '/home';
 
+  /// 主题选择页
+  static String themeSelection = '/themeSelection';
 
+  /// 笔记列表页
+  static String noteList = '/noteList';
 }

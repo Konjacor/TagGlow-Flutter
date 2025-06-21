@@ -8,6 +8,7 @@ class Note {
   final DateTime gmtCreate;
   final DateTime gmtModified;
   final int isDeleted;
+  final List<String>? tags;
 
   Note({
     required this.id,
@@ -19,6 +20,7 @@ class Note {
     required this.gmtCreate,
     required this.gmtModified,
     required this.isDeleted,
+    this.tags,
   });
 
   factory Note.fromJson(Map<String, dynamic> json) {
@@ -32,18 +34,20 @@ class Note {
       gmtCreate: DateTime.parse(json['gmtCreate'] as String),
       gmtModified: DateTime.parse(json['gmtModified'] as String),
       isDeleted: json['isDeleted'] as int,
+      tags: json['tags'] != null ? List<String>.from(json['tags']) : [],
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'userId': userId,
-    'content': content,
-    'position': position,
-    'weather': weather,
-    'time': time.toIso8601String(),
-    'gmtCreate': gmtCreate.toIso8601String(),
-    'gmtModified': gmtModified.toIso8601String(),
-    'isDeleted': isDeleted,
-  };
+        'id': id,
+        'userId': userId,
+        'content': content,
+        'position': position,
+        'weather': weather,
+        'time': time.toIso8601String(),
+        'gmtCreate': gmtCreate.toIso8601String(),
+        'gmtModified': gmtModified.toIso8601String(),
+        'isDeleted': isDeleted,
+        'tags': tags,
+      };
 }

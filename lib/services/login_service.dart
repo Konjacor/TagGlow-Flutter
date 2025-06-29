@@ -150,10 +150,10 @@ class AuthService {
     final now = DateTime.now().millisecondsSinceEpoch;
     final payload = {
       "avatar": avatar,
-      "gmtCreate": now,
-      "gmtModified": now,
-      "id": "", // 让后端生成
-      "isDeleted": 0,
+      // "gmtCreate": now,
+      // "gmtModified": now,
+      // "id": "", // 让后端生成
+      // "isDeleted": 0,
       "password": password,
       "signature": signature,
       "username": username,
@@ -180,9 +180,11 @@ class AuthService {
       if (body['success'] == true) {
         return User.fromJson(body['data']['user']);
       } else {
+        print("注册失败");
         throw Exception("注册失败：[31m");
       }
     } else {
+      print('HTTP \\${resp.statusCode}');
       throw Exception('HTTP \\${resp.statusCode}');
     }
   }

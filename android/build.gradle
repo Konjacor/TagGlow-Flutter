@@ -1,39 +1,87 @@
 // buildscript {
+//
+//     ext.kotlin_version = '1.8.22'
+//
 //     repositories {
 //         google()
 //         mavenCentral()
 //     }
 //     dependencies {
 //         classpath 'com.android.tools.build:gradle:8.3.0'
+//         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
 //     }
 // }
+//
+////allprojects {
+////    repositories {
+////        // 国内镜像
+//////        maven { url 'https://maven.aliyun.com/repository/central' }
+//////        maven { url 'https://maven.aliyun.com/repository/google' }
+//////        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+////        google()
+////        mavenCentral()
+////    }
+////}
+//
+//rootProject.buildDir = "../build"
+//
+//subprojects {
+//    project.buildDir = "${rootProject.buildDir}/${project.name}"
+//    // Commented previous block and inserted this block, as indicated by
+//    // https://github.com/4Q-s-r-o/ota_update/issues/120
+//    afterEvaluate { project ->
+//        if (project.plugins.hasPlugin("com.android.application") ||
+//                project.plugins.hasPlugin("com.android.library")) {
+//            project.android {
+//                compileSdkVersion 34
+//                buildToolsVersion "34.0.0"
+//
+//                // 添加缺失的 flutter 属性
+//                project.ext.set("flutter", [
+//                        compileSdkVersion: 34,
+//                        minSdkVersion: 21,
+//                        ndkVersion: "25.1.8937393"
+//                ])
+//                // 添加 JDK 版本要求
+//                compileOptions {
+//                    sourceCompatibility JavaVersion.VERSION_17
+//                    targetCompatibility JavaVersion.VERSION_17
+//                }
+//            }
+//        }
+//    }
+//}
+//
+//tasks.register("clean", Delete) {
+//    delete rootProject.buildDir
+//}
 
-allprojects {
+buildscript {
+    ext.kotlin_version = '1.8.22'
     repositories {
-        // 国内镜像
-        maven { url 'https://maven.aliyun.com/repository/central' }
-        maven { url 'https://maven.aliyun.com/repository/google' }
-        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
         google()
         mavenCentral()
     }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.1.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
 }
 
-rootProject.buildDir = "../build"
+//allprojects {
+//    repositories {
+//        google()
+//        mavenCentral()
+//    }
+//}
 
+rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
-    // Commented previous block and inserted this block, as indicated by
-    // https://github.com/4Q-s-r-o/ota_update/issues/120
-    afterEvaluate { project ->
-        if (project.plugins.hasPlugin("com.android.application") ||
-                project.plugins.hasPlugin("com.android.library")) {
-            project.android {
-                compileSdkVersion 34
-                buildToolsVersion "34.0.0"
-            }
-        }
-    }
+}
+subprojects {
+    project.evaluationDependsOn(':app')
 }
 
 tasks.register("clean", Delete) {

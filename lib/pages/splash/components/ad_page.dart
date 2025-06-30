@@ -96,13 +96,13 @@ class _AdPageState extends State<AdPage> {
         }
       }
       setState(() {
-        _greeting = '早安，愿你今天有个美好的开始！';
+        _greeting = '记录此刻，TagGlow为你点亮专属坐标';
       });
       _initSplash();
     } catch (e) {
       print('蓝心API调用异常: \\${e.toString()}');
       setState(() {
-        _greeting = '早安，愿你今天有个美好的开始！';
+        _greeting = '记录此刻，TagGlow为你点亮专属坐标';
       });
       _initSplash();
     }
@@ -111,29 +111,38 @@ class _AdPageState extends State<AdPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFF6DEC8), Color(0xFFFAD5A5)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Stack(
-          children: <Widget>[
+      backgroundColor: const Color(0xFFFFF8E1),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 80), // 顶部留白，插画偏上
             Center(
-              child: _greeting.trim().isEmpty
-                  ? const CircularProgressIndicator()
-                  : Text(
-                      _greeting,
-                      style: GoogleFonts.maShanZheng(
-                        fontSize: 32,
-                        color: Colors.black,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
+              child: Container(
+                width: 220,
+                height: 220,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.3),
+                ),
+                alignment: Alignment.center,
+                child: Image.asset(
+                  'asset/images/kitty.png',
+                  width: 180,
+                  height: 180,
+                  fit: BoxFit.contain,
+                ),
+              ),
             ),
-            flotSkipWidget(),
+            const SizedBox(height: 32),
+            Text(
+              '记录此刻，TagGlow为你点亮专属坐标',
+              style: const TextStyle(
+                fontSize: 20,
+                color: Colors.black87,
+                fontWeight: FontWeight.normal, // 不加粗
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),

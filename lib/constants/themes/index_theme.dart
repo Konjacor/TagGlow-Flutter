@@ -21,11 +21,9 @@ final ThemeData themeTagGlowDark = ThemeData(
   colorScheme: ColorScheme.dark(
     primary: Color(0xFFB0C4DE),
     secondary: Color(0xFF87CEEB),
-    background: Color(0xFF232946),
     surface: Color(0xFF232946),
     onPrimary: Colors.white,
     onSecondary: Colors.white,
-    onBackground: Colors.white,
     onSurface: Colors.white,
     error: Color(0xffd32f2f),
     onError: Colors.white,
@@ -57,10 +55,9 @@ final ThemeData themeTagGlowDark = ThemeData(
     hintStyle: TextStyle(color: Colors.white54),
   ),
   bottomAppBarTheme: const BottomAppBarTheme(color: Color(0xFF232946)),
-  tabBarTheme: const TabBarTheme(
+  tabBarTheme: const TabBarThemeData(
     labelColor: Color(0xFFB0C4DE),
     unselectedLabelColor: Colors.white54,
     indicatorSize: TabBarIndicatorSize.tab,
-  ),
-  dialogBackgroundColor: const Color(0xFF232946),
+  ), dialogTheme: DialogThemeData(backgroundColor: const Color(0xFF232946)),
 );

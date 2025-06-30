@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../note/note.dart';
+import '../../note/letter_detail_page.dart';
 
 class DiaryHomePage extends StatefulWidget {
-  const DiaryHomePage({Key? key}) : super(key: key);
+  const DiaryHomePage({super.key});
 
   @override
   State<DiaryHomePage> createState() => _DiaryHomePageState();
@@ -14,45 +15,32 @@ class _DiaryHomePageState extends State<DiaryHomePage> {
   final PageController _pageController = PageController(viewportFraction: 0.75);
   int _currentIndex = 0;
 
-  // 示例数据，包含 icon、标题、封面图和详情
-  final List<Map<String, dynamic>> _cards = [
-    {
-      'title': '心情日记',
-      'icon': Icons.mood,
-      'color': Colors.pink,
-      'cover': 'asset/images/2.jpeg',
-      'details': ['❤️ 23 条', '📅 2025-06-09', '📝 写一写'],
-    },
-    {
-      'title': '学习笔记',
-      'icon': Icons.book,
-      'color': Colors.orange,
-      'cover': 'asset/images/1.jpeg',
-      'details': ['📚 12 篇', '📅 2025-06-05', '✏️ 添加笔记'],
-    },
-    {
-      'title': '旅行日志',
-      'icon': Icons.card_travel,
-      'color': Colors.teal,
-      'cover': 'asset/images/3.jpeg',
-      'details': ['✈️ 5 地点', '📅 2025-05-28', '📷 添加照片'],
-    },
-  ];
+  // 只保留一份"今日笔记"卡片和一份"感谢相遇"卡片
+  final List<Map<String, dynamic>> _cards = [];
 
   @override
   void initState() {
     super.initState();
-    // 在卡片流最前面插入"今日笔记"卡片
     final now = DateTime.now();
     final dateStr = DateFormat('yyyy年MM月dd日').format(now);
     final dayStr = DateFormat('d').format(now);
-    _cards.insert(0, {
+
+    // 今日笔记卡片
+    _cards.add({
       'type': 'today',
       'title': '今日笔记',
       'date': dateStr,
       'day': dayStr,
       'cover': 'asset/images/kitty.png',
       'tip': '疲惫的一天终于结束\n打开日记写下今天的故事叭',
+    });
+
+    // 感谢相遇卡片
+    _cards.add({
+      'type': 'letter',
+      'title': '感谢相遇',
+      'cover': 'asset/images/kitty3.png',
+      'subtitle': '一封tagglow的来信',
     });
   }
 
@@ -115,7 +103,6 @@ class _DiaryHomePageState extends State<DiaryHomePage> {
                             final page = _pageController.page!;
                             scale = (index == page.round()) ? 1.0 : 0.9;
                           } catch (_) {}
-                          // 判断是否为今日笔记卡片
                           if (card['type'] == 'today') {
                             return Transform.scale(
                               scale: scale,
@@ -205,80 +192,89 @@ class _DiaryHomePageState extends State<DiaryHomePage> {
                               ),
                             );
                           }
-                          return Transform.scale(
-                            scale: scale,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8.0, vertical: 16),
-                              child: Card(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                elevation: 4,
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    const SizedBox(height: 16),
-                                    Icon(
-                                      card['icon'],
-                                      size: 36,
-                                      color: card['color'],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    // 标题
-                                    Center(
-                                      child: Text(
-                                        card['title'],
-                                        style: GoogleFonts.robotoSlab(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
-                                          color: card['color'].shade800,
+                          if (card['type'] == 'letter') {
+                            return Transform.scale(
+                              scale: scale,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8.0, vertical: 16),
+                                child: Card(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  elevation: 4,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(20),
+                                    onTap: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const LetterDetailPage(),
                                         ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    // 封面图占比大
-                                    Expanded(
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(16),
-                                        child: Image.asset(
-                                          card['cover'],
-                                          fit: BoxFit.cover,
-                                          width: double.infinity,
+                                      );
+                                    },
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        const SizedBox(height: 24),
+                                        Expanded(
+                                          child: Center(
+                                            child: Image.asset(
+                                              card['cover'],
+                                              height: 160,
+                                              fit: BoxFit.contain,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16.0),
-                                      child: AnimatedOpacity(
-                                        opacity:
-                                            _currentIndex == index ? 1.0 : 0.0,
-                                        duration:
-                                            const Duration(milliseconds: 300),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: card['details']
-                                              .map<Widget>((d) => Text(
-                                                    d,
-                                                    style: const TextStyle(
-                                                      fontSize: 14,
-                                                      color: Colors.grey,
-                                                    ),
-                                                  ))
-                                              .toList(),
+                                        // 黑色底部区域
+                                        ClipRRect(
+                                          borderRadius: const BorderRadius.only(
+                                            bottomLeft: Radius.circular(20),
+                                            bottomRight: Radius.circular(20),
+                                          ),
+                                          child: Container(
+                                            color: Colors.black87,
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 20, horizontal: 8),
+                                            child: Column(
+                                              children: [
+                                                Text(
+                                                  card['title'] ?? '',
+                                                  style: const TextStyle(
+                                                    fontSize: 20,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Container(
+                                                  width: 24,
+                                                  height: 2,
+                                                  color: Colors.white24,
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  card['subtitle'] ?? '',
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    color: Colors.white70,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 16),
-                                  ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
+                            );
+                          }
+                          return const SizedBox.shrink();
                         },
                       ),
                     ),

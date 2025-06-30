@@ -6,7 +6,7 @@ import '../../../services/login_service.dart';
 class EditSignaturePage extends StatefulWidget {
   final String userId;
   final String currentSignature;
-  const EditSignaturePage({Key? key, required this.userId, required this.currentSignature}) : super(key: key);
+  const EditSignaturePage({super.key, required this.userId, required this.currentSignature});
 
   @override
   _EditSignaturePageState createState() => _EditSignaturePageState();

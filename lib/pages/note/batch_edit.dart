@@ -35,7 +35,7 @@ class HeaderArcClipper extends CustomClipper<Path> {
 
 class BatchGeneratePage extends StatefulWidget {
   final String travelGuide;
-  const BatchGeneratePage({Key? key, required this.travelGuide}) : super(key: key);
+  const BatchGeneratePage({super.key, required this.travelGuide});
 
   @override
   _BatchGeneratePageState createState() => _BatchGeneratePageState();

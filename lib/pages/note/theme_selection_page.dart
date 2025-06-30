@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'note.dart'; // 导入笔记编辑页
 
 class ThemeSelectionPage extends StatefulWidget {
-  const ThemeSelectionPage({Key? key}) : super(key: key);
+  const ThemeSelectionPage({super.key});
 
   @override
   _ThemeSelectionPageState createState() => _ThemeSelectionPageState();

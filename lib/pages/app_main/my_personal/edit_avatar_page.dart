@@ -9,10 +9,10 @@ class EditAvatarPage extends StatefulWidget {
   final String userId;
   final String currentAvatar;
   const EditAvatarPage({
-    Key? key,
+    super.key,
     required this.userId,
     required this.currentAvatar,
-  }) : super(key: key);
+  });
 
   @override
   _EditAvatarPageState createState() => _EditAvatarPageState();
@@ -37,9 +37,11 @@ class _EditAvatarPageState extends State<EditAvatarPage> {
       }
     } catch (e) {
       print('pickImage 异常: $e');
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('无法选择图片'))
       );
+      }
     }
   }
 

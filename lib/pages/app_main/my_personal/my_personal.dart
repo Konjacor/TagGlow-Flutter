@@ -8,7 +8,7 @@ import 'edit_signature_page.dart';
 import '../../../provider/theme_store.p.dart';
 
 class MyPersonal extends StatefulWidget {
-  const MyPersonal({Key? key}) : super(key: key);
+  const MyPersonal({super.key});
 
   @override
   _MyPersonalState createState() => _MyPersonalState();

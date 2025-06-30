@@ -65,8 +65,7 @@ class HeaderClipper extends CustomClipper<Path> {
 class NotePage extends StatefulWidget {
   final String? userId; // 可通过构造传入
   final int? classificationId; // 新增：主题ID
-  const NotePage({Key? key, this.userId, this.classificationId})
-      : super(key: key);
+  const NotePage({super.key, this.userId, this.classificationId});
 
   @override
   _NotePageState createState() => _NotePageState();
@@ -128,7 +127,7 @@ class _NotePageState extends State<NotePage>
           desiredAccuracy: LocationAccuracy.high);
       _latitude = pos.latitude;
       _longitude = pos.longitude;
-      print('获取到的经纬度: 经度: \\${_longitude}, 纬度: \\${_latitude}');
+      print('获取到的经纬度: 经度: \\$_longitude, 纬度: \\$_latitude');
       _positionController.text = '';
       // 优先用 geocoding 本地逆地理编码
       await _getAddressFromGeocoding(_latitude!, _longitude!);

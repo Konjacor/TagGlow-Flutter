@@ -49,7 +49,7 @@ class TagBubble {
 }
 
 class TagWallPage extends StatefulWidget {
-  const TagWallPage({Key? key}) : super(key: key);
+  const TagWallPage({super.key});
   @override
   _TagWallPageState createState() => _TagWallPageState();
 }
@@ -70,7 +70,8 @@ class _TagWallPageState extends State<TagWallPage>
 
   final List<TagBubble> _bubbles = [];
   final Random _rand = Random();
-  final String _baseUrl = 'http://192.168.3.9:8001/service/tag';
+  //final String _baseUrl = 'http://192.168.3.9:8001/service/tag';
+  final String _baseUrl = 'http://10.22.75.56:8001/service/tag';
   // final List<String> _tagPool = [
   //   "创意", "灵感", "梦想", "探索", "科技",
   //   "艺术", "音乐", "旅行", "美食", "学习",
@@ -426,7 +427,9 @@ class _TagWallPageState extends State<TagWallPage>
     _flyController!.forward();
     _flyController!.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        for (var b in _bubbles) b.position = b.targetPos;
+        for (var b in _bubbles) {
+          b.position = b.targetPos;
+        }
       }
     });
   }
@@ -822,7 +825,7 @@ class _TagWallPageState extends State<TagWallPage>
       );
     }
     // 在访问控制器前添加空检查
-    final breathScale = 1.0 + (_breathController?.value ?? 0.0) * 0.05;
+    final breathScale = 1.0 + (_breathController.value ?? 0.0) * 0.05;
     final size = MediaQuery.of(context).size;
     // 计算地球位置（虚拟画布中的位置）
     final globalEarthPos = Offset(
@@ -891,7 +894,7 @@ class _TagWallPageState extends State<TagWallPage>
         scaleEnabled: _isBackgroundDragging,// 启用缩放
         transformationController: _transformationController,
     child:
-    Container(
+    SizedBox(
       // width: MediaQuery.of(context).size.width * _virtualWidth,
       // height: MediaQuery.of(context).size.height * _virtualHeight,
       width: size.width * _virtualWidth,
@@ -1101,7 +1104,7 @@ class _TagWallPageState extends State<TagWallPage>
                 );
               },
             );
-          }).toList(),
+          }),
           ],
         ),
     ),

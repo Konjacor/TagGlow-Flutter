@@ -160,8 +160,8 @@ class AuthService {
     };
 
     // 调试输出：打印请求的 URL 和 payload
-    print('注册请求URL: ' + uri.toString());
-    print('注册请求Payload: ' + jsonEncode(payload));
+    print('注册请求URL: $uri');
+    print('注册请求Payload: ${jsonEncode(payload)}');
 
     final resp = await http.post(
       uri,

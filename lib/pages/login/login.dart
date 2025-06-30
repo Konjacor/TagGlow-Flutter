@@ -129,7 +129,7 @@ class _StaggeredLetterState extends State<StaggeredLetter>
 }
 
 class Login extends StatefulWidget {
-  const Login({Key? key, required params}) : super(key: key);
+  const Login({super.key, required params});
 
   @override
   _LoginState createState() => _LoginState();

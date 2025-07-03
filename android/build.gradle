@@ -8,12 +8,31 @@
 //     }
 // }
 
+buildscript {
+    ext.kotlin_version = '1.9.22'
+    repositories {
+        // 国内镜像源优先
+        // maven { url 'https://maven.aliyun.com/repository/public' }
+        // maven { url 'https://maven.aliyun.com/repository/central' }
+        // maven { url 'https://maven.aliyun.com/repository/google' }
+        // maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.3.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
 allprojects {
     repositories {
-        // 国内镜像
-        maven { url 'https://maven.aliyun.com/repository/central' }
-        maven { url 'https://maven.aliyun.com/repository/google' }
-        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        // 国内镜像源优先
+        // maven { url 'https://maven.aliyun.com/repository/public' }
+        // maven { url 'https://maven.aliyun.com/repository/central' }
+        // maven { url 'https://maven.aliyun.com/repository/google' }
+        // maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
         google()
         mavenCentral()
     }
@@ -33,9 +52,24 @@ subprojects {
                 buildToolsVersion "34.0.0"
             }
         }
+        
+        // // 为所有项目添加重复文件处理策略
+        // project.tasks.withType(Jar) {
+        //     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        // }
+        
+        // project.tasks.withType(Copy) {
+        //     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        // }
     }
 }
 
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// tasks.withType(Copy).all { DuplicatesStrategy.EXCLUDE }

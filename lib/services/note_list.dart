@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../models/note_item.dart';
 
 class ApiService {
-  static const _baseUrl = 'http://10.22.66.126:8001'; // 后端地址
+  static const _baseUrl = 'http://121.36.111.18:8001'; // 生产环境后端地址
 
   /// 获取笔记列表
   static Future<List<NoteItem>> fetchNotes() async {

@@ -15,11 +15,11 @@ enum ENV {
 
 // dio请求前缀
 final Map<ENV, String> _baseUrl = {
-  ENV.DEV: 'http://10.22.75.56:8001',
+  ENV.DEV: 'http://121.36.111.18:8001',
   //ENV.DEV: 'http://192.168.3.9:8001',
   ENV.TEST: 'https://urltest.com',
   ENV.PRE: 'https://urlpre.com',
-  ENV.PROD: 'https://url.com',
+  ENV.PROD: 'http://121.36.111.18:8001',
 };
 
 class AppEnv {

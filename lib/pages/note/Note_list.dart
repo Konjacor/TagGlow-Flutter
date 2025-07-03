@@ -18,7 +18,7 @@ class NoteListPage extends StatefulWidget {
 }
 
 class _NoteListPageState extends State<NoteListPage> {
-  final String _baseUrl = 'http://10.22.75.56:8001/service/note';
+  final String _baseUrl = 'http://121.36.111.18:8001/service/note';
   List<Note> _notes = [];
   final Set<String> _selectedIds = {};
   bool _selectionMode = false;

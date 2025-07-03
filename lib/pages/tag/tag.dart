@@ -71,7 +71,7 @@ class _TagWallPageState extends State<TagWallPage>
   final List<TagBubble> _bubbles = [];
   final Random _rand = Random();
   //final String _baseUrl = 'http://192.168.3.9:8001/service/tag';
-  final String _baseUrl = 'http://10.22.75.56:8001/service/tag';
+  final String _baseUrl = 'http://121.36.111.18:8001/service/tag';
   // final List<String> _tagPool = [
   //   "创意", "灵感", "梦想", "探索", "科技",
   //   "艺术", "音乐", "旅行", "美食", "学习",
